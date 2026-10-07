@@ -7,22 +7,60 @@
   "max_alt_ft": 10000.0,
   "interval_s": 5.0,
   "low_ft": 2500.0,
-  "overflight_km": 1.0,
+  "overflight_km": 1.5,
   "view_km": 11.0,
   "platzrunde": true,
   "runways": [
-    {"id": "13", "heading": 135},
-    {"id": "31", "heading": 315}
+    {
+      "id": "13",
+      "heading": 135
+    },
+    {
+      "id": "31",
+      "heading": 315
+    }
   ],
   "orte": [
-    {"name": "Willich-Schiefbahn/Unterbruch", "lat": 51.2620, "lon": 6.5390},
-    {"name": "Willich-Schiefbahn (Ort)",      "lat": 51.2690, "lon": 6.5100},
-    {"name": "Willich-Neersen",               "lat": 51.2560, "lon": 6.4780},
-    {"name": "MG-Neuwerk",                    "lat": 51.2050, "lon": 6.4780},
-    {"name": "MG-Uedding/Damm",               "lat": 51.2150, "lon": 6.5250},
-    {"name": "Korschenbroich-Herrenshoff",    "lat": 51.1930, "lon": 6.5480},
-    {"name": "Korschenbroich-Raderbroich",    "lat": 51.2160, "lon": 6.5730},
-    {"name": "Kaarst-Vorst",                  "lat": 51.2430, "lon": 6.5800}
+    {
+      "name": "Willich-Schiefbahn/Unterbruch",
+      "lat": 51.262,
+      "lon": 6.539
+    },
+    {
+      "name": "Willich-Schiefbahn (Ort)",
+      "lat": 51.269,
+      "lon": 6.51
+    },
+    {
+      "name": "Willich-Neersen",
+      "lat": 51.256,
+      "lon": 6.478
+    },
+    {
+      "name": "MG-Neuwerk",
+      "lat": 51.205,
+      "lon": 6.478
+    },
+    {
+      "name": "MG-Uedding/Damm",
+      "lat": 51.215,
+      "lon": 6.525
+    },
+    {
+      "name": "Korschenbroich-Herrenshoff",
+      "lat": 51.193,
+      "lon": 6.548
+    },
+    {
+      "name": "Korschenbroich-Raderbroich",
+      "lat": 51.216,
+      "lon": 6.573
+    },
+    {
+      "name": "Kaarst-Vorst",
+      "lat": 51.243,
+      "lon": 6.58
+    }
   ],
   "hinweis": "Keine Transponderpflicht, keine Laermmessstellen, kein oeffentliches Flugspurportal. Eigener Mitschnitt ist hier die einzige Datenquelle. Platzrunden sind nur Empfehlung des Laermschutzbeirats."
 }

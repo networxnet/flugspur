@@ -157,7 +157,9 @@ def report(day):
 
     # --- Ueberflugereignisse ---
     print(f"\nUeberflug-Ereignisse je Ortslage "
-          f"(Radius {OVER_KM} km, ein Ereignis je Luftfahrzeug und Durchgang):")
+          f"(Radius {OVER_KM} km, ein Ereignis je Luftfahrzeug und Durchgang).")
+    print(f"  'tief' = hoechstens {LOW_FT:.0f} ft, laermrelevant. 'gesamt' = alle "
+          f"Hoehen,\n  enthaelt auch hohen Durchgangsverkehr Richtung Duesseldorf.")
     events = defaultdict(list)
     for ortname, ola, olo in ORTE:
         last = {}
@@ -172,12 +174,13 @@ def report(day):
     for ortname, _, _ in ORTE:
         ev = events.get(ortname, [])
         alts = [e["alt"] for e in ev if e["alt"] is not None]
+        tief = sum(1 for a in alts if a <= LOW_FT)
         if alts:
             info = (f"min {min(alts):5.0f} ft   median {sorted(alts)[len(alts)//2]:5.0f} ft"
                     f"   unter 1500 ft: {sum(1 for a in alts if a < 1500)}")
         else:
             info = ""
-        print(f"  {ortname:34s} {len(ev):4d}   {info}")
+        print(f"  {ortname:34s} tief {tief:4d}   gesamt {len(ev):4d}   {info}")
         rows.append({
             "tag": day, "ort": ortname, "ereignisse": len(ev),
             "min_ft": min(alts) if alts else "",

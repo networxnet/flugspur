@@ -98,15 +98,17 @@ def zustand():
         if jetzt - p["t"] <= 120:
             aktuell[p["id"]] = p
 
-    # Ueberflüge heute
-    ueber = defaultdict(int)
+    # Ueberflüge heute, getrennt nach tief und gesamt
+    ueber = defaultdict(lambda: [0, 0])   # [tief, gesamt]
     for name, ola, olo in P["orte"]:
         zuletzt = {}
         for p in pts:
             if profil.hav_km(ola, olo, p["lat"], p["lon"]) <= OVER_KM:
                 v = zuletzt.get(p["id"])
                 if v is None or p["t"] - v > 180:
-                    ueber[name] += 1
+                    ueber[name][1] += 1
+                    if p["alt"] is not None and p["alt"] <= LOW_FT:
+                        ueber[name][0] += 1
                 zuletzt[p["id"]] = p["t"]
 
     dateien = []
@@ -155,8 +157,12 @@ def seite():
         reihen = ['<tr><td colspan=7 style="color:#777;padding:14px">'
                   'Gerade nichts in der Luft (oder letzte Meldung älter als 2 Minuten).</td></tr>']
 
-    orte = "".join(
-        f"<tr><td>{e(n)}</td><td align=right><b>{z['ueber'].get(n,0)}</b></td></tr>"
+    orte = "<tr><th>Ortslage</th><th align=right>tief</th>" \
+           "<th align=right>gesamt</th></tr>" + "".join(
+        f"<tr><td>{e(n)}</td>"
+        f"<td align=right><b style='color:{'#b3261e' if z['ueber'].get(n,[0,0])[0] else '#1b2430'}'>"
+        f"{z['ueber'].get(n,[0,0])[0]}</b></td>"
+        f"<td align=right style='color:#5a6673'>{z['ueber'].get(n,[0,0])[1]}</td></tr>"
         for n, _, _ in P["orte"])
 
     dat = "".join(
@@ -218,8 +224,12 @@ code{{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}}
 <th>km</th><th>Quelle</th><th>zuletzt</th></tr>
 {''.join(reihen)}</table></div>
 
-<div class=box><h2>Überflüge heute ({OVER_KM:g} km Umkreis)</h2>
-<table>{orte}</table></div>
+<div class=box><h2>Überflüge heute &middot; {OVER_KM:g} km Umkreis</h2>
+<table>{orte}</table>
+<div style="padding:9px 15px;font-size:12px;color:#667;border-top:1px solid #eef2f6">
+<b>tief</b> = Durchgang in höchstens {LOW_FT:.0f} ft, lärmrelevant &middot;
+<b>gesamt</b> = alle Höhen, enthält auch Düsseldorfer Verkehr in 5.000–7.000 ft.
+Ein Ereignis je Luftfahrzeug und Durchgang.</div></div>
 
 <div class=box><h2>Dateien</h2>
 <table>{dat}
@@ -242,7 +252,8 @@ class H(BaseHTTPRequestHandler):
                 "tag": z["tag"], "in_der_luft": len(z["aktuell"]),
                 "meldungen_5min": len(z["letzte5"]),
                 "maschinen_heute": len({p["id"] for p in z["pts"]}),
-                "ueberfluege": dict(z["ueber"]),
+                "ueberfluege_tief": {k: v[0] for k, v in z["ueber"].items()},
+                "ueberfluege_gesamt": {k: v[1] for k, v in z["ueber"].items()},
                 "heartbeat_adsb_s": z["hb_adsb"][0],
                 "heartbeat_ogn_s": z["hb_ogn"][0],
             }, ensure_ascii=False).encode()
@@ -294,6 +305,10 @@ def konsole():
                       f"{str(p['alt'] or '-'):>6s} ft {d:5.1f} km  {p['q']}")
             if not z["aktuell"]:
                 print("  (gerade nichts in der Luft)")
+            tief = {k: v[0] for k, v in z["ueber"].items() if v[0]}
+            if tief:
+                print("\n  Tiefe Ueberfluege heute: " +
+                      ", ".join(f"{k} {v}" for k, v in sorted(tief.items())))
             print("\n  Abbruch mit Strg+C")
             time.sleep(10)
     except KeyboardInterrupt:
