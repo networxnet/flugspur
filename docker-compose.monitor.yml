@@ -6,6 +6,10 @@
 # In Portainer:  Stacks -> Add stack -> Name "flugspur-monitor"
 #                -> Web editor -> diesen Text einfuegen -> Deploy
 #
+# NUR noetig, wenn der Hauptstack KEINEN Monitor enthaelt. Meldet Portainer
+# "container name is already used", ist der Monitor bereits vorhanden --
+# dann diesen Stack nicht anlegen, sondern den vorhandenen Container nutzen.
+#
 # Aufruf danach:  http://<Adresse-des-NAS>:8099     (http, nicht https)
 #
 # Ist Port 8099 belegt, nur die LINKE Zahl aendern, z. B. "8111:8099",
@@ -14,7 +18,7 @@
 services:
   monitor:
     image: python:3.12-slim-bookworm
-    container_name: flugspur-monitor
+    container_name: flugspur-monitor2
     restart: unless-stopped
     working_dir: /app
     command: ["python3", "/app/monitor.py"]
