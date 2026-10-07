@@ -146,6 +146,17 @@ ogn_2026-10-07.ndjson
 _heartbeat_adsb.txt
 ```
 
+### Jetzt den Selbsttest laufen lassen
+
+Portainer → **Containers** → `flugspur-summary` → **Console** → `/bin/sh`:
+
+```sh
+python3 /app/selbsttest.py
+```
+
+70 Sekunden, prüft alles auf einmal und sagt klar BESTANDEN oder
+FEHLGESCHLAGEN. Erst wenn der durchläuft, ist die Installation fertig.
+
 **Damit ist die Erfassung produktiv.** Ab hier läuft sie von selbst weiter,
 auch nach einem Neustart des NAS.
 

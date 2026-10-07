@@ -45,6 +45,21 @@ Nichts wird überschrieben — bereits geschriebene Tage bleiben unangetastet.
 
 ---
 
+## 1b. Selbsttest — prüft alles auf einmal
+
+```sh
+docker exec flugspur-summary python3 /app/selbsttest.py
+```
+
+70 Sekunden. Prüft Profil, Schreibrechte, beide ADS-B-Quellen, das OGN-Netz,
+einen echten 40-Sekunden-Mitschnitt, die Auswertung und die Grafik. Nach
+jeder Änderung an Profil oder Konfiguration sinnvoll.
+
+Zeilen mit `[hinw]` sind kein Fehler — „0 Positionen" ist nachts normal.
+Entscheidend sind `[FEHL]`-Zeilen.
+
+---
+
 ## 2. Läuft es? (die einzige Routinekontrolle)
 
 ```bash

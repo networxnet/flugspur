@@ -69,8 +69,19 @@ die Containernamen richten sich danach.
 #   TRACKER_PLATZ  edln
 ```
 
+Nach der Installation prüfen, ob alles sitzt:
+
+```sh
+docker exec flugspur-summary python3 /app/selbsttest.py
+```
+
+Prüft in 70 Sekunden Profil, Schreibrechte, beide Datenquellen, einen echten
+Probemitschnitt, Auswertung und Grafik. Ergebnis: **BESTANDEN** oder
+**FEHLGESCHLAGEN** mit Begründung.
+
 Anleitungen in [`doku/`](doku/):
 
+- [`TESTPLAN.md`](doku/TESTPLAN.md) — **hier anfangen:** aufsetzen, prüfen, erst dann ausrollen
 - [`INSTALLATION_QNAP.md`](doku/INSTALLATION_QNAP.md) — Einrichtung Schritt für Schritt, rein grafisch
 - [`INSTALLATION_IMAGE.md`](doku/INSTALLATION_IMAGE.md) — Weg über GitHub und eigenes Image
 - [`BEDIENUNG.md`](doku/BEDIENUNG.md) — Alltag: kontrollieren, auswerten, exportieren
