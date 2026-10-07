@@ -69,6 +69,8 @@ die Containernamen richten sich danach.
 #   TRACKER_PLATZ  edln
 ```
 
+Live mitverfolgen, was hereinkommt: `http://<NAS>:8099`
+
 Nach der Installation prüfen, ob alles sitzt:
 
 ```sh

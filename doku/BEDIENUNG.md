@@ -45,6 +45,36 @@ Nichts wird überschrieben — bereits geschriebene Tage bleiben unangetastet.
 
 ---
 
+## 1a. Live-Monitor im Browser
+
+```
+http://<Adresse-Ihres-NAS>:8099
+```
+
+Zeigt, was gerade hereinkommt, und aktualisiert sich alle 10 Sekunden
+selbst — zum Offenlassen auf einem zweiten Bildschirm:
+
+- **Ampel** für ADS-B und OGN (grün unter 90 s, gelb bis 5 Min, rot darüber)
+- gerade in der Luft, davon tief fliegend
+- Meldungen der letzten 5 Minuten, Maschinen der letzten Stunde und heute
+- Tabelle der aktuell sichtbaren Maschinen mit Muster, Höhe, Tempo,
+  Entfernung und Quelle — tief fliegende sind rot hinterlegt
+- Überflüge je Ortslage seit Mitternacht
+- Dateigrößen und Gesamtverbrauch
+
+Maschinenlesbar für eigene Auswertungen: `http://<NAS>:8099/json`
+
+Ohne Browser geht es auch im Terminal:
+
+```sh
+docker exec -it flugspur-monitor python3 /app/monitor.py --konsole
+```
+
+Der Monitor hängt das Datenverzeichnis **nur lesend** ein — er kann den
+Mitschnitt nicht beschädigen.
+
+---
+
 ## 1b. Selbsttest — prüft alles auf einmal
 
 ```sh
