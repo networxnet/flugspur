@@ -65,7 +65,7 @@ die Containernamen richten sich danach.
 # Stacks -> Add stack -> Web editor -> docker-compose.image.yml einfuegen
 # Environment variables:
 #   FS_IMAGE       ghcr.io/<IHR-NAME>/flugspur:latest
-#   FS_DATA_PFAD   /share/Container/flugspur/data
+#   FS_DATA_PFAD   /share/CACHEDEV1_DATA/Container/flugspur/data
 #   TRACKER_PLATZ  edln
 ```
 

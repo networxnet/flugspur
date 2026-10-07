@@ -128,7 +128,7 @@ Unten bei **Environment variables** → **Add an environment variable**:
 
 | Name | Value |
 |---|---|
-| `FS_DATA_PFAD` | `/share/Container/flugspur/data` |
+| `FS_DATA_PFAD` | `/share/CACHEDEV1_DATA/Container/flugspur/data` |
 
 **Deploy the stack**, dann **Containers** → Logs von `flugspur-pfadtest-uid1000`
 ansehen.
@@ -165,7 +165,7 @@ Bei **Environment variables** zwei Einträge:
 | Name | Value |
 |---|---|
 | `FS_IMAGE` | `ghcr.io/ihrname/flugspur:latest` |
-| `FS_DATA_PFAD` | `/share/Container/flugspur/data` |
+| `FS_DATA_PFAD` | `/share/CACHEDEV1_DATA/Container/flugspur/data` |
 
 **Deploy the stack.**
 

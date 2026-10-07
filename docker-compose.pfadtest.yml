@@ -17,8 +17,8 @@ services:
     container_name: flugspur-pfadtest-root
     restart: "no"
     volumes:
-      - /share/Container/flugspur/app:/app:ro      # <<< Pfad ggf. anpassen
-      - /share/Container/flugspur/data:/data       # <<< Pfad ggf. anpassen
+      - /share/CACHEDEV1_DATA/Container/flugspur/app:/app:ro      # <<< Pfad ggf. anpassen
+      - /share/CACHEDEV1_DATA/Container/flugspur/data:/data       # <<< Pfad ggf. anpassen
     command:
       - sh
       - -c
@@ -52,7 +52,7 @@ services:
     restart: "no"
     user: "1000:1000"
     volumes:
-      - /share/Container/flugspur/data:/data       # <<< Pfad ggf. anpassen
+      - /share/CACHEDEV1_DATA/Container/flugspur/data:/data       # <<< Pfad ggf. anpassen
     command:
       - sh
       - -c

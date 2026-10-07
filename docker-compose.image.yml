@@ -7,7 +7,7 @@
 #  Beide Werte haben eine Vorgabe und koennen in Portainer unter
 #  "Environment variables" ueberschrieben werden:
 #     FS_IMAGE      z. B. ghcr.io/IHR-NAME/flugspur:1.0
-#     FS_DATA_PFAD  z. B. /share/Container/flugspur/data   (QNAP)
+#     FS_DATA_PFAD  z. B. /share/CACHEDEV1_DATA/Container/flugspur/data   (QNAP)
 #                          /mnt/daten/edln/data                  (Raspberry Pi)
 #
 #  Umzug auf eine andere Plattform = nur FS_DATA_PFAD aendern.
@@ -28,7 +28,7 @@ services:
       TRACKER_DATA_DIR: "/data"
       TRACKER_HEARTBEAT: "/data/_heartbeat_adsb.txt"
     volumes:
-      - ${FS_DATA_PFAD:-/share/Container/flugspur/data}:/data
+      - ${FS_DATA_PFAD:-/share/CACHEDEV1_DATA/Container/flugspur/data}:/data
 
   ogn:
     image: ${FS_IMAGE:-ghcr.io/CHANGEME/flugspur:latest}
@@ -42,7 +42,7 @@ services:
       TRACKER_DATA_DIR: "/data"
       TRACKER_HEARTBEAT: "/data/_heartbeat_ogn.txt"
     volumes:
-      - ${FS_DATA_PFAD:-/share/Container/flugspur/data}:/data
+      - ${FS_DATA_PFAD:-/share/CACHEDEV1_DATA/Container/flugspur/data}:/data
 
   summary:
     image: ${FS_IMAGE:-ghcr.io/CHANGEME/flugspur:latest}
@@ -59,4 +59,4 @@ services:
       TRACKER_LOW_FT: "2500"
       TRACKER_VIEW_KM: "11"
     volumes:
-      - ${FS_DATA_PFAD:-/share/Container/flugspur/data}:/data
+      - ${FS_DATA_PFAD:-/share/CACHEDEV1_DATA/Container/flugspur/data}:/data
