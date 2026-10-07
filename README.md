@@ -149,6 +149,43 @@ sondern der Grund, warum die übrigen Zahlen belastbar sind.
 
 ---
 
+## In English
+
+**Flugspur** ("flight track") records aircraft movements around an airfield
+and turns them into evidence that non-experts — councillors, journalists,
+neighbours — can read at a glance.
+
+It captures **ADS-B/MLAT** (powered aircraft, business jets) from the open
+networks adsb.fi and adsb.lol, and **FLARM/ADS-L** (gliders, microlights,
+gyrocopters) from the Open Glider Network. No hardware, no accounts, no cost.
+Pure Python standard library, multi-arch image (amd64 + arm64), runs on a
+NAS, a Linux box or a Raspberry Pi.
+
+Output is a self-contained HTML page — map of actual tracks coloured by
+altitude, density map of low flights, overflight counts per settlement,
+time-of-day and aircraft-type breakdowns. No internet needed to view it.
+
+Any airfield works: everything location-specific lives in a JSON profile
+under `app/plaetze/`. See `app/plaetze/edln.json` as a template — the field
+names are German but self-explanatory (`lat`, `lon`, `radius_nm`,
+`runways`, `orte` = settlements, `platzrunde` = traffic-circuit detection).
+
+**Two caveats that matter anywhere:** only aircraft transmitting ADS-B,
+MLAT-capable Mode S or FLARM are seen — where no transponder is mandated,
+all counts are **lower bounds**. And an overflight is not in itself a
+breach of any rule; this tool documents the **extent** of exposure, not
+misconduct.
+
+**Documentation is German only.** The interface text is roughly 400 words
+and could be translated quickly; the 5,800 words of documentation are the
+real cost, and bilingual docs drift apart fast. If you need an English
+version, open an issue — knowing there is actual demand is what makes the
+maintenance worthwhile.
+
+Licence: MIT.
+
+---
+
 ## Lizenz
 
 MIT — gerne weitergeben und anpassen. Ausdrücklich auch für andere
