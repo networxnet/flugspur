@@ -39,10 +39,10 @@ services:
         if touch /data/_t_root 2>/dev/null; then echo "   OK"; rm -f /data/_t_root; else echo "   FEHLGESCHLAGEN"; fi
         echo "--------------------------------------------------"
         echo " Internetzugang:"
-        python3 -c "import urllib.request as u;print('   adsb.fi erreichbar, HTTP',u.urlopen('https://opendata.adsb.fi/api/v2/lat/51.23/lon/6.50/dist/15',timeout=15).status)" 2>/dev/null || echo "   KEIN Internetzugang"
+        python3 -c "import urllib.request as u;print('   adsb.fi erreichbar, HTTP',u.urlopen(u.Request('https://opendata.adsb.fi/api/v2/lat/51.23/lon/6.50/dist/15',headers={'User-Agent':'Flugspur/1.0'}),timeout=20).status)" || echo "   ^^^ obiger Fehler ist die Ursache -- Diagnose-Stack ausfuehren"
         echo "--------------------------------------------------"
         echo " OGN-Netz (Port 14580):"
-        python3 -c "import socket;s=socket.create_connection(('aprs.glidernet.org',14580),timeout=15);print('   erreichbar');s.close()" 2>/dev/null || echo "   NICHT erreichbar -- Firewall blockt ausgehend 14580?"
+        python3 -c "import socket;s=socket.create_connection(('aprs.glidernet.org',14580),timeout=15);print('   erreichbar');s.close()" || echo "   ^^^ Firewall blockt ausgehend 14580?"
         echo "=================================================="
 
   # Test 2: als uid 1000 -- entscheidend fuer das spaetere Image

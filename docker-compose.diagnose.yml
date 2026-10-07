@@ -1,0 +1,138 @@
+# ---------------------------------------------------------------------------
+#  DIAGNOSE -- findet heraus, WARUM etwas nicht geht.
+#  Laeuft einmal, schreibt alles ins Log, beendet sich. Nichts ausfuellen.
+#
+#  Haengt mehrere Kandidatenpfade NUR LESEND ein und sucht die Dateien.
+#  Zeigt bei Netzfehlern die echte Fehlermeldung statt sie zu verschlucken.
+#
+#  Danach: Containers -> flugspur-diagnose -> Logs  -> mir schicken.
+# ---------------------------------------------------------------------------
+services:
+  diagnose:
+    image: python:3.12-slim-bookworm
+    container_name: flugspur-diagnose
+    restart: "no"
+    volumes:
+      - /share:/scan/share:ro
+    command:
+      - sh
+      - -c
+      - |
+        python3 - <<'PY'
+        import os, socket, ssl, sys, traceback, urllib.request
+
+        def kopf(t):
+            print("\n" + "=" * 60); print(" " + t); print("=" * 60)
+
+        # ---------------------------------------------- 1. Dateien finden
+        kopf("1. WO LIEGEN DIE DATEIEN?")
+        treffer = []
+        for wurzel, dirs, files in os.walk("/scan/share"):
+            tiefe = wurzel.count("/") - 2
+            if tiefe > 5:
+                dirs[:] = []
+                continue
+            dirs[:] = [d for d in dirs if d not in
+                       ("@Recycle", "@Recently-Snapshot", ".@__thumb", "@Transcode")]
+            if "adsb_logger.py" in files or "profil.py" in files:
+                treffer.append(wurzel)
+            if "flugspur" in os.path.basename(wurzel).lower():
+                print(f"  Ordner gefunden: {wurzel.replace('/scan','')}")
+                try:
+                    for e in sorted(os.listdir(wurzel))[:25]:
+                        art = "/" if os.path.isdir(os.path.join(wurzel, e)) else " "
+                        print(f"      {art} {e}")
+                except OSError as e:
+                    print(f"      (nicht lesbar: {e})")
+        print()
+        if treffer:
+            for t in treffer:
+                echt = t.replace("/scan", "")
+                print(f"  >>> PYTHON-DATEIEN LIEGEN HIER: {echt}")
+                print(f"      In der Compose-Datei eintragen:")
+                print(f"        - {echt}:/app:ro")
+        else:
+            print("  >>> KEINE adsb_logger.py unterhalb von /share gefunden.")
+            print("      Die Dateien wurden vermutlich noch nicht hochgeladen,")
+            print("      oder sie liegen ausserhalb von /share.")
+
+        # ------------------------------------------------- 2. Namensaufloesung
+        kopf("2. NAMENSAUFLOESUNG (DNS)")
+        for host in ("opendata.adsb.fi", "api.adsb.lol", "aprs.glidernet.org"):
+            try:
+                infos = socket.getaddrinfo(host, None)
+                adressen = sorted({i[4][0] for i in infos})
+                v4 = [a for a in adressen if ":" not in a]
+                v6 = [a for a in adressen if ":" in a]
+                print(f"  {host}")
+                print(f"      IPv4: {', '.join(v4) or '(keine)'}")
+                print(f"      IPv6: {', '.join(v6) or '(keine)'}")
+            except Exception as e:
+                print(f"  {host}: FEHLER {type(e).__name__}: {e}")
+
+        # ---------------------------------------------------- 3. TCP auf 443
+        kopf("3. VERBINDUNG AUF PORT 443")
+        for host in ("opendata.adsb.fi", "api.adsb.lol"):
+            for fam, label in ((socket.AF_INET, "IPv4"), (socket.AF_INET6, "IPv6")):
+                try:
+                    infos = socket.getaddrinfo(host, 443, fam, socket.SOCK_STREAM)
+                except Exception:
+                    print(f"  {host} {label}: keine Adresse")
+                    continue
+                try:
+                    s = socket.socket(fam, socket.SOCK_STREAM)
+                    s.settimeout(10)
+                    s.connect(infos[0][4])
+                    s.close()
+                    print(f"  {host} {label}: offen")
+                except Exception as e:
+                    print(f"  {host} {label}: {type(e).__name__}: {e}")
+
+        # ------------------------------------------------------- 4. TLS
+        kopf("4. TLS / ZERTIFIKATE")
+        print(f"  OpenSSL: {ssl.OPENSSL_VERSION}")
+        try:
+            ctx = ssl.create_default_context()
+            print(f"  CA-Zertifikate geladen: {len(ctx.get_ca_certs())} Stueck")
+        except Exception as e:
+            print(f"  FEHLER beim Laden der CA-Zertifikate: {e}")
+        try:
+            with socket.create_connection(("opendata.adsb.fi", 443), timeout=15) as sock:
+                with ssl.create_default_context().wrap_socket(
+                        sock, server_hostname="opendata.adsb.fi") as ss:
+                    print(f"  TLS-Handschlag OK, Protokoll {ss.version()}")
+        except Exception as e:
+            print(f"  TLS FEHLGESCHLAGEN: {type(e).__name__}: {e}")
+
+        # ------------------------------------------------- 5. HTTPS-Abruf
+        kopf("5. ECHTER HTTPS-ABRUF (mit vollem Fehlertext)")
+        for name, url in (
+            ("adsb.fi",  "https://opendata.adsb.fi/api/v2/lat/51.23/lon/6.50/dist/15"),
+            ("adsb.lol", "https://api.adsb.lol/v2/lat/51.23/lon/6.50/dist/15"),
+        ):
+            try:
+                req = urllib.request.Request(url, headers={"User-Agent": "Flugspur/1.0 (Diagnose)"})
+                with urllib.request.urlopen(req, timeout=25) as r:
+                    roh = r.read()
+                print(f"  {name}: HTTP {r.status}, {len(roh)} Bytes empfangen  -> FUNKTIONIERT")
+            except Exception as e:
+                print(f"  {name}: FEHLGESCHLAGEN")
+                for z in traceback.format_exception_only(type(e), e):
+                    print(f"      {z.rstrip()}")
+
+        # ------------------------------------------------------ 6. Umfeld
+        kopf("6. UMFELD")
+        proxys = {k: v for k, v in os.environ.items() if "proxy" in k.lower()}
+        print(f"  Proxy-Variablen: {proxys or 'keine'}")
+        try:
+            with open("/etc/resolv.conf") as f:
+                print("  /etc/resolv.conf:")
+                for z in f.read().strip().splitlines():
+                    print(f"      {z}")
+        except Exception as e:
+            print(f"  resolv.conf nicht lesbar: {e}")
+        print(f"  Python {sys.version.split()[0]}")
+        print("\n" + "=" * 60)
+        print(" Diagnose beendet -- bitte dieses Protokoll vollstaendig schicken.")
+        print("=" * 60)
+        PY
