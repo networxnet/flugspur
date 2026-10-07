@@ -29,6 +29,18 @@ MIN_MIN  = 8            # Mindestdauer in Minuten
 hav_km = profil.hav_km
 ang_diff = profil.winkel_diff
 
+
+def _ogn_id(r):
+    """OGN-Kennung auf die ADS-B-Kennung abbilden, damit dieselbe Maschine
+    nicht doppelt gezaehlt wird. ICAxxxxxx -> xxxxxx."""
+    k = r.get("icao")
+    if k:
+        return k.lower()
+    i = r.get("id") or ""
+    if i.startswith("ICA") and len(i) == 9:
+        return i[3:].lower()
+    return i
+
 def load_day(day):
     """Liest ADS-B und OGN eines Tages und vereinheitlicht die Felder."""
     pts = []
@@ -47,7 +59,7 @@ def load_day(day):
                     continue
                 if r.get("net") == "OGN":
                     pts.append({
-                        "t": r.get("ts"), "id": r.get("id"), "lat": r.get("lat"),
+                        "t": r.get("ts"), "id": _ogn_id(r), "lat": r.get("lat"),
                         "lon": r.get("lon"), "alt": r.get("alt_ft"),
                         "trk": r.get("course"), "desc": None, "net": "OGN",
                     })
@@ -58,7 +70,9 @@ def load_day(day):
                         "trk": r.get("track"),
                         "desc": r.get("desc") or r.get("type"), "net": "ADSB",
                     })
-    pts = [p for p in pts if p["t"] and p["id"] and p["lat"] is not None]
+    _max = _P["max_alt_ft"]
+    pts = [p for p in pts if p["t"] and p["id"] and p["lat"] is not None
+           and (p["alt"] is None or p["alt"] <= _max)]
     pts.sort(key=lambda p: p["t"])
     return pts
 

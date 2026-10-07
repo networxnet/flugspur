@@ -51,6 +51,18 @@ def band_color(alt):
 
 # ---------------------------------------------------------------- Daten laden
 
+
+def _ogn_id(r):
+    """OGN-Kennung auf die ADS-B-Kennung abbilden, damit dieselbe Maschine
+    nicht doppelt gezaehlt wird. ICAxxxxxx -> xxxxxx."""
+    k = r.get("icao")
+    if k:
+        return k.lower()
+    i = r.get("id") or ""
+    if i.startswith("ICA") and len(i) == 9:
+        return i[3:].lower()
+    return i
+
 def load(days):
     pts = []
     for day in days:
@@ -75,7 +87,8 @@ def load(days):
                         p = {"t": r.get("t"), "id": r.get("icao"), "lat": r.get("lat"),
                              "lon": r.get("lon"), "alt": r.get("alt_ft"),
                              "desc": r.get("desc") or r.get("type"), "net": "ADSB"}
-                    if p["t"] and p["id"] and p["lat"] is not None:
+                    if (p["t"] and p["id"] and p["lat"] is not None
+                            and (p["alt"] is None or p["alt"] <= _P["max_alt_ft"])):
                         pts.append(p)
     pts.sort(key=lambda p: p["t"])
     return pts

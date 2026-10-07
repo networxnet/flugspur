@@ -23,6 +23,7 @@ SITE = _P["code"]
 LAT = _P["lat"]
 LON = _P["lon"]
 RADIUS_KM = _P["radius_nm"] * 1.852
+MAX_ALT = _P["max_alt_ft"]
 OUT = profil._env("DATA_DIR") or "/data"
 os.makedirs(OUT, exist_ok=True)
 
@@ -82,8 +83,19 @@ def run():
                     d = dist_km(la, lo)
                     if d > RADIUS_KM:
                         continue
+                    alt = int(m["alt"])
+                    if alt > MAX_ALT:
+                        continue          # Reiseflug ist fuer Laerm irrelevant
+                    kennung = m["id"]
+                    # OGN leitet auch ADS-B weiter. "ICA4D2153" ist dieselbe
+                    # Maschine wie "4d2153" im ADS-B-Mitschnitt -- sonst
+                    # wuerde sie doppelt gezaehlt.
+                    icao = (kennung[3:].lower()
+                            if kennung.startswith("ICA") and len(kennung) == 9
+                            else None)
                     rec = {
-                        "ts": int(time.time()), "id": m["id"], "lat": round(la, 5),
+                        "ts": int(time.time()), "id": kennung, "icao": icao,
+                        "lat": round(la, 5),
                         "lon": round(lo, 5), "alt_ft": int(m["alt"]),
                         "course": int(m["course"]), "kt": int(m["speed"]),
                         "d_km": round(d, 2), "raw": t[:200], "net": "OGN", "site": SITE,
