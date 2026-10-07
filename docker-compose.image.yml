@@ -4,9 +4,8 @@
 #  Plattformunabhaengig: laeuft identisch auf QNAP, Synology, Unraid, Debian
 #  und Raspberry Pi (das Image ist amd64 + arm64).
 #
-#  Es gibt in dieser Datei KEINEN fest verdrahteten Pfad. Der einzige
-#  hostabhaengige Wert wird in Portainer unter "Environment variables"
-#  gesetzt:
+#  Beide Werte haben eine Vorgabe und koennen in Portainer unter
+#  "Environment variables" ueberschrieben werden:
 #     FS_IMAGE      z. B. ghcr.io/IHR-NAME/flugspur:1.0
 #     FS_DATA_PFAD  z. B. /share/Container/flugspur/data   (QNAP)
 #                          /mnt/daten/edln/data                  (Raspberry Pi)
@@ -29,7 +28,7 @@ services:
       TRACKER_DATA_DIR: "/data"
       TRACKER_HEARTBEAT: "/data/_heartbeat_adsb.txt"
     volumes:
-      - ${FS_DATA_PFAD:?FS_DATA_PFAD muss in Portainer gesetzt werden}:/data
+      - ${FS_DATA_PFAD:-/share/Container/flugspur/data}:/data
 
   ogn:
     image: ${FS_IMAGE:-ghcr.io/CHANGEME/flugspur:latest}
@@ -43,7 +42,7 @@ services:
       TRACKER_DATA_DIR: "/data"
       TRACKER_HEARTBEAT: "/data/_heartbeat_ogn.txt"
     volumes:
-      - ${FS_DATA_PFAD:?FS_DATA_PFAD muss in Portainer gesetzt werden}:/data
+      - ${FS_DATA_PFAD:-/share/Container/flugspur/data}:/data
 
   summary:
     image: ${FS_IMAGE:-ghcr.io/CHANGEME/flugspur:latest}
@@ -60,4 +59,4 @@ services:
       TRACKER_LOW_FT: "2500"
       TRACKER_VIEW_KM: "11"
     volumes:
-      - ${FS_DATA_PFAD:?FS_DATA_PFAD muss in Portainer gesetzt werden}:/data
+      - ${FS_DATA_PFAD:-/share/Container/flugspur/data}:/data

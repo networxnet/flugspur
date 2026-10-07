@@ -1,25 +1,24 @@
 # ---------------------------------------------------------------------------
-#  PFADTEST -- laeuft einmal, schreibt ins Log, beendet sich.
-#  Zweck: Pfad, Schreibrechte und Internetzugang pruefen, BEVOR der
-#  eigentliche Stack ausgerollt wird.
+#  PFADTEST  --  QNAP, ohne jede Variable
 #
-#  In Portainer unter "Environment variables" setzen:
-#     FS_APP_PFAD   nur noetig bei der Bind-Mount-Variante,
-#                     z. B. /share/Container/flugspur/app
-#     FS_DATA_PFAD  z. B. /share/Container/flugspur/data
+#  Laeuft einmal, schreibt das Ergebnis ins Log, beendet sich.
+#  Prueft: Pfad richtig? Schreibrecht? Internet? OGN-Port offen?
 #
-#  Danach: Containers -> Logs der beiden Container ansehen.
+#  Einfach einfuegen und deployen. NICHTS auszufuellen.
+#  Stimmt Ihr Pfad nicht, nur die drei mit <<< markierten Zeilen aendern.
+#
+#  Danach: Containers -> Logs von flugspur-pfadtest-uid1000 ansehen.
 # ---------------------------------------------------------------------------
 services:
 
-  # Test 1: als root -- gilt fuer die Bind-Mount-Variante
+  # Test 1: als root -- gilt fuer die Bind-Mount-Variante (Testphase)
   pfadtest-root:
     image: python:3.12-slim-bookworm
-    container_name: ${STACK:-flugspur}-pfadtest-root
+    container_name: flugspur-pfadtest-root
     restart: "no"
     volumes:
-      - ${FS_APP_PFAD:-/tmp}:/app:ro
-      - ${FS_DATA_PFAD:?FS_DATA_PFAD muss gesetzt werden}:/data
+      - /share/Container/flugspur/app:/app:ro      # <<< Pfad ggf. anpassen
+      - /share/Container/flugspur/data:/data       # <<< Pfad ggf. anpassen
     command:
       - sh
       - -c
@@ -28,10 +27,12 @@ services:
         echo " TEST ALS ROOT (Bind-Mount-Variante)"
         echo "=================================================="
         echo " Inhalt von /app :"
-        if ls /app 2>/dev/null | grep -q "\.py"; then ls -la /app; else
-          echo "   LEER ODER NICHT VORHANDEN"
-          echo "   -> nur wichtig fuer die Bind-Mount-Variante,"
-          echo "      beim geschlossenen Image egal."
+        if ls /app 2>/dev/null | grep -q "\.py"; then
+          ls -la /app
+          echo " --- Profile in /app/plaetze :"
+          ls /app/plaetze 2>/dev/null || echo "   FEHLT -- Ordner plaetze/ nicht mit hochgeladen!"
+        else
+          echo "   LEER ODER NICHT VORHANDEN -> Pfad stimmt nicht"
         fi
         echo "--------------------------------------------------"
         echo " Schreibtest /data als root (uid 0):"
@@ -40,35 +41,35 @@ services:
         echo " Internetzugang:"
         python3 -c "import urllib.request as u;print('   adsb.fi erreichbar, HTTP',u.urlopen('https://opendata.adsb.fi/api/v2/lat/51.23/lon/6.50/dist/15',timeout=15).status)" 2>/dev/null || echo "   KEIN Internetzugang"
         echo "--------------------------------------------------"
-        echo " OGN-Netz erreichbar:"
-        python3 -c "import socket;s=socket.create_connection(('aprs.glidernet.org',14580),timeout=15);print('   OGN-Server erreichbar');s.close()" 2>/dev/null || echo "   OGN-Server NICHT erreichbar (Port 14580 geblockt?)"
+        echo " OGN-Netz (Port 14580):"
+        python3 -c "import socket;s=socket.create_connection(('aprs.glidernet.org',14580),timeout=15);print('   erreichbar');s.close()" 2>/dev/null || echo "   NICHT erreichbar -- Firewall blockt ausgehend 14580?"
         echo "=================================================="
 
-  # Test 2: als uid 1000 -- DAS ist der entscheidende Test fuer das
-  # geschlossene Image, denn darin laeuft der Prozess unprivilegiert.
+  # Test 2: als uid 1000 -- entscheidend fuer das spaetere Image
   pfadtest-uid1000:
     image: python:3.12-slim-bookworm
-    container_name: ${STACK:-flugspur}-pfadtest-uid1000
+    container_name: flugspur-pfadtest-uid1000
     restart: "no"
     user: "1000:1000"
     volumes:
-      - ${FS_DATA_PFAD:?FS_DATA_PFAD muss gesetzt werden}:/data
+      - /share/Container/flugspur/data:/data       # <<< Pfad ggf. anpassen
     command:
       - sh
       - -c
       - |
         echo "=================================================="
-        echo " TEST ALS UID 1000 (geschlossenes Image)"
+        echo " TEST ALS UID 1000 (spaeteres geschlossenes Image)"
         echo "=================================================="
         id
         echo " Schreibtest /data als uid 1000:"
         if touch /data/_t_1000 2>/dev/null; then
-          echo "   OK -- geschlossenes Image kann schreiben"
+          echo "   OK -- auch das geschlossene Image kann schreiben"
           rm -f /data/_t_1000
         else
           echo "   FEHLGESCHLAGEN"
-          echo "   -> Ordner gehoert einem anderen Benutzer."
-          echo "      Abhilfe A: in der Compose-Datei  user: \"0:0\"  ergaenzen"
-          echo "      Abhilfe B: Schreibrecht fuer alle setzen (File Station)"
+          echo "   Fuer die Testphase (Bind-Mount) unkritisch."
+          echo "   Vor dem Umstieg aufs Image beheben:"
+          echo "     A: in der Compose-Datei  user: \"0:0\"  ergaenzen"
+          echo "     B: Schreibrecht fuer alle auf data/ setzen"
         fi
         echo "=================================================="
