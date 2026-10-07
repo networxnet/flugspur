@@ -1,0 +1,32 @@
+# Flugspur -- NUR der Live-Monitor, als eigener Stack.
+#
+# Beruehrt die Aufzeichnung nicht: /app und /data werden NUR LESEND
+# eingebunden. Laesst sich jederzeit gefahrlos loeschen und neu anlegen.
+#
+# In Portainer:  Stacks -> Add stack -> Name "flugspur-monitor"
+#                -> Web editor -> diesen Text einfuegen -> Deploy
+#
+# Aufruf danach:  http://<Adresse-des-NAS>:8099     (http, nicht https)
+#
+# Ist Port 8099 belegt, nur die LINKE Zahl aendern, z. B. "8111:8099",
+# und dann http://<Adresse-des-NAS>:8111 aufrufen.
+
+services:
+  monitor:
+    image: python:3.12-slim-bookworm
+    container_name: flugspur-monitor
+    restart: unless-stopped
+    working_dir: /app
+    command: ["python3", "/app/monitor.py"]
+    ports:
+      - "8099:8099"
+    environment:
+      PYTHONUNBUFFERED: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+      TZ: "Europe/Berlin"
+      TRACKER_PLATZ: "edln"
+      TRACKER_DATA_DIR: "/data"
+      TRACKER_MONITOR_PORT: "8099"
+    volumes:
+      - /share/CACHEDEV1_DATA/Container/flugspur/app:/app:ro
+      - /share/CACHEDEV1_DATA/Container/flugspur/data:/data:ro

@@ -35,8 +35,14 @@ def _ogn_id(r):
 def heute():
     return datetime.now().strftime("%Y-%m-%d")
 
+_CACHE = {}
+
 def lies(tag):
-    """Liest den Tag und liefert vereinheitlichte Punkte."""
+    """Liest den Tag und liefert vereinheitlichte Punkte (mit Zwischenspeicher)."""
+    sig = tuple((os.path.getmtime(f), os.path.getsize(f))
+                for f in sorted(glob.glob(os.path.join(DATA, f"*_{tag}.ndjson"))))
+    if _CACHE.get("sig") == sig:
+        return _CACHE["pts"]
     pts = []
     for art, pfad in (("ADSB", os.path.join(DATA, f"adsb_{tag}.ndjson")),
                       ("OGN",  os.path.join(DATA, f"ogn_{tag}.ndjson"))):
@@ -64,6 +70,7 @@ def lies(tag):
                                 "kt": r.get("gs_kt")})
     pts = [p for p in pts if p["t"] and p["id"] and p["lat"] is not None]
     pts.sort(key=lambda p: p["t"])
+    _CACHE["sig"], _CACHE["pts"] = sig, pts
     return pts
 
 def herzschlag(name):
@@ -225,6 +232,10 @@ Alle Zahlen sind Untergrenzen.</div>
 
 class H(BaseHTTPRequestHandler):
     def do_GET(self):
+      try:
+        if self.path.startswith("/healthz"):
+            self.send_response(200); self.send_header("Content-Type","text/plain")
+            self.end_headers(); self.wfile.write(b"ok"); return
         if self.path.startswith("/json"):
             z = zustand()
             nutz = json.dumps({
@@ -245,6 +256,20 @@ class H(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(nutz)
+      except Exception:
+        import traceback
+        txt = ("<!DOCTYPE html><meta charset=utf-8><title>Flugspur Monitor</title>"
+               "<body style='font-family:sans-serif;padding:24px'>"
+               "<h2>Der Monitor hat einen Fehler</h2><p>Bitte diesen Text melden:</p>"
+               "<pre style='background:#f4f4f4;padding:14px;overflow:auto'>"
+               + html.escape(traceback.format_exc()) + "</pre>").encode()
+        try:
+            self.send_response(500)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(txt)))
+            self.end_headers(); self.wfile.write(txt)
+        except Exception:
+            pass
 
     def log_message(self, *a):
         pass
@@ -286,4 +311,15 @@ if __name__ == "__main__":
         print(f"Flugspur-Monitor laeuft auf Port {PORT}", flush=True)
         print(f"Im Browser oeffnen:  http://<Adresse-des-NAS>:{PORT}", flush=True)
         print(f"Datenverzeichnis: {DATA} | Platz: {P['code']} ({P['name']})", flush=True)
+        try:
+            dat = sorted(os.listdir(DATA))
+            print(f"Gefundene Dateien in {DATA}: {len(dat)}", flush=True)
+            for d in dat[:12]:
+                print(f"   {d}", flush=True)
+            if not dat:
+                print("   HINWEIS: leer. Laufen die Logger und zeigen sie auf "
+                      "dasselbe Verzeichnis?", flush=True)
+        except Exception as ex:
+            print(f"   FEHLER beim Lesen von {DATA}: {ex}", flush=True)
+        print("Bereit. Jetzt im Browser oeffnen (http://, nicht https://).", flush=True)
         srv.serve_forever()

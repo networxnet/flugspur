@@ -63,6 +63,10 @@ selbst — zum Offenlassen auf einem zweiten Bildschirm:
 - Dateigrößen und Gesamtverbrauch
 
 Maschinenlesbar für eigene Auswertungen: `http://<NAS>:8099/json`
+Kurzprüfung, ob der Server lebt: `http://<NAS>:8099/healthz` → `ok`
+
+Zeigt die Seite nichts: **`doku/MONITOR_GEHT_NICHT.md`** geht die
+Ursachen der Reihe nach durch.
 
 Ohne Browser geht es auch im Terminal:
 
