@@ -1,0 +1,71 @@
+# ---------------------------------------------------------------------------
+#  Flugspur-Mitschnitt EDLN  --  QNAP / QTS mit Portainer
+#  Kein Image-Build, kein SSH, kein pip. Reine Standardbibliothek.
+#
+#  Voraussetzung: auf dem NAS existiert
+#     /share/Container/flugspur/app     <- die 5 .py-Dateien
+#     /share/Container/flugspur/data    <- leer, hier entstehen die Daten
+#
+#  Stimmt der Pfad nicht, zuerst den Pfadtest aus INSTALLATION_QNAP.md laufen
+#  lassen. Ein falscher Pfad fuehrt dazu, dass die Container mit
+#  "can't open file '/app/adsb_logger.py'" im Neustart haengen.
+# ---------------------------------------------------------------------------
+services:
+
+  adsb:
+    image: python:3.12-slim
+    container_name: ${STACK:-flugspur}-adsb
+    restart: unless-stopped
+    working_dir: /app
+    command: ["python3", "/app/adsb_logger.py"]
+    environment:
+      PYTHONUNBUFFERED: "1"
+      TZ: "Europe/Berlin"
+      TRACKER_PLATZ: "edln"       # Profil aus app/plaetze/<name>.json
+      TRACKER_RADIUS_NM: "15"
+      TRACKER_MAX_ALT_FT: "10000"
+      TRACKER_INTERVAL_S: "5"
+      TRACKER_DATA_DIR: "/data"
+    volumes:
+      - /share/Container/flugspur/app:/app:ro
+      - /share/Container/flugspur/data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import time,sys;t=int(open('/data/_heartbeat_adsb.txt').readline());sys.exit(0 if time.time()-t<180 else 1)\""]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+
+  ogn:
+    image: python:3.12-slim
+    container_name: ${STACK:-flugspur}-ogn
+    restart: unless-stopped
+    working_dir: /app
+    command: ["python3", "/app/ogn_logger.py"]
+    environment:
+      PYTHONUNBUFFERED: "1"
+      TZ: "Europe/Berlin"
+      TRACKER_PLATZ: "edln"       # Profil aus app/plaetze/<name>.json
+      TRACKER_RADIUS_NM: "15"
+      TRACKER_DATA_DIR: "/data"
+    volumes:
+      - /share/Container/flugspur/app:/app:ro
+      - /share/Container/flugspur/data:/data
+
+  summary:
+    image: python:3.12-slim
+    container_name: ${STACK:-flugspur}-summary
+    restart: unless-stopped
+    working_dir: /app
+    command: ["sleep", "infinity"]
+    environment:
+      PYTHONUNBUFFERED: "1"
+      TZ: "Europe/Berlin"
+      TRACKER_PLATZ: "edln"
+      TRACKER_DATA_DIR: "/data"
+      TRACKER_OVERFLIGHT_KM: "1.0"
+      TRACKER_LOW_FT: "2500"
+      TRACKER_VIEW_KM: "11"
+    volumes:
+      - /share/Container/flugspur/app:/app:ro
+      - /share/Container/flugspur/data:/data

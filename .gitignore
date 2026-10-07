@@ -1,0 +1,6 @@
+data/
+*.ndjson
+report_*.csv
+flugbewegungen_*.html
+__pycache__/
+*.pyc
