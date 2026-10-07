@@ -12,8 +12,11 @@
 #
 # Aufruf danach:  http://<Adresse-des-NAS>:8099     (http, nicht https)
 #
-# Ist Port 8099 belegt, nur die LINKE Zahl aendern, z. B. "8111:8099",
-# und dann http://<Adresse-des-NAS>:8111 aufrufen.
+# Ist Port 8099 belegt: NICHT die Zeilen anfassen, sondern beim Deploy
+# unten unter "Environment variables" eintragen:
+#     name = FS_MONITOR_PORT     value = 8077
+# Damit werden Freigabe und Server gemeinsam umgestellt; sie koennen
+# nicht mehr auseinanderlaufen. Aufruf dann http://<NAS>:8077
 
 services:
   monitor:
@@ -23,14 +26,14 @@ services:
     working_dir: /app
     command: ["python3", "/app/monitor.py"]
     ports:
-      - "8099:8099"
+      - "${FS_MONITOR_PORT:-8099}:${FS_MONITOR_PORT:-8099}"
     environment:
       PYTHONUNBUFFERED: "1"
       PYTHONDONTWRITEBYTECODE: "1"
       TZ: "Europe/Berlin"
       TRACKER_PLATZ: "edln"
       TRACKER_DATA_DIR: "/data"
-      TRACKER_MONITOR_PORT: "8099"
+      TRACKER_MONITOR_PORT: "${FS_MONITOR_PORT:-8099}"
     volumes:
       - /share/CACHEDEV1_DATA/Container/flugspur/app:/app:ro
       - /share/CACHEDEV1_DATA/Container/flugspur/data:/data:ro

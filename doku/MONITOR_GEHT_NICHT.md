@@ -71,15 +71,29 @@ python3 -c "import urllib.request;print(urllib.request.urlopen('http://127.0.0.1
 
 ## 5. Port belegt oder blockiert
 
-In `docker-compose.monitor.yml` nur die **linke** Zahl ändern:
+Ändern Sie **nicht** die Compose-Datei. Tragen Sie beim Deploy unten
+unter **Environment variables** ein:
 
-```yaml
-    ports:
-      - "8111:8099"
+| name | value |
+|---|---|
+| `FS_MONITOR_PORT` | `8077` |
+
+Damit werden Portfreigabe und Server gemeinsam umgestellt. Danach
+`http://<NAS>:8077` aufrufen.
+
+**Warum das wichtig ist:** Der Port steht an zwei Stellen — in der
+Freigabe `ports:` und in der Variablen `TRACKER_MONITOR_PORT`. Ändert man
+nur eine, lauscht der Server auf dem einen Port, während Docker den
+anderen nach außen reicht. Dann ist die Seite nicht erreichbar, obwohl
+das Log einen sauberen Start meldet. Genau dieser Fall sieht im Log so
+aus:
+
+```
+Flugspur-Monitor laeuft auf Port 8077     <-- Server
+ports: - "8099:8099"                      <-- Freigabe, passt nicht
 ```
 
-Danach `http://<NAS>:8111` aufrufen. Die rechte Zahl bleibt immer 8099 —
-das ist der Port *innerhalb* des Containers.
+Die Variable `FS_MONITOR_PORT` setzt beide zugleich und verhindert das.
 
 Prüfen Sie außerdem in der QNAP-Systemsteuerung unter **Sicherheit**, ob
 eine Firewallregel ausgehende Ports einschränkt.

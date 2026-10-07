@@ -78,13 +78,13 @@ services:
     working_dir: /app
     command: ["python3", "/app/monitor.py"]
     ports:
-      - "8099:8099"
+      - "${FS_MONITOR_PORT:-8099}:${FS_MONITOR_PORT:-8099}"
     environment:
       PYTHONUNBUFFERED: "1"
       TZ: "Europe/Berlin"
       TRACKER_PLATZ: "edln"
       TRACKER_DATA_DIR: "/data"
-      TRACKER_MONITOR_PORT: "8099"
+      TRACKER_MONITOR_PORT: "${FS_MONITOR_PORT:-8099}"
     volumes:
       - /share/CACHEDEV1_DATA/Container/flugspur/app:/app:ro
       - /share/CACHEDEV1_DATA/Container/flugspur/data:/data:ro
