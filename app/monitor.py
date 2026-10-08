@@ -13,6 +13,8 @@ import json, os, sys, time, glob, html, socket
 from collections import defaultdict
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import urlparse, parse_qs
+import subprocess, tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import profil, kennzeichen
@@ -200,6 +202,22 @@ def seite():
         f"{'fehlt' if g is None else f'{g/1000:.0f} kB'}</td></tr>"
         for n, g in z["dateien"])
 
+    tage = verfuegbare_tage()
+    heut = heute()
+    gestern = (datetime.fromtimestamp(time.time() - 86400)).strftime("%Y-%m-%d")
+    knopf = []
+    for bez, t in [("heute", heut), ("gestern", gestern)]:
+        if t in tage:
+            knopf.append(f'<a class=btn href="/karte?tag={t}">Karte {bez}</a>'
+                         f'<a class=btn2 href="/text?tag={t}">Text {bez}</a>')
+    if len(tage) > 1:
+        knopf.append(f'<a class=btn href="/karte?tag=alle">Karte alle '
+                     f'{len(tage)} Tage</a>'
+                     f'<a class=btn2 href="/text?tag=alle">Text alle</a>')
+    knoepfe = ("".join(knopf) if knopf
+               else '<span style="color:#777;font-size:13px">Noch keine '
+                    'abgeschlossene Tagesdatei vorhanden.</span>')
+
     tief_jetzt = sum(1 for p in z["aktuell"].values()
                      if p["alt"] is not None and p["alt"] <= LOW_FT)
 
@@ -249,6 +267,13 @@ code{{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}}
  <div class=c><b>{len({p['id'] for p in z['pts']})}</b><span>Maschinen heute</span></div>
 </div>
 
+<div class=box><h2>Auswertung erzeugen</h2>
+<div style="padding:12px 15px">{knoepfe}
+<div style="font-size:12px;color:#667;margin-top:9px">Die Karte wird beim
+Anklicken frisch aus den Mitschnitten berechnet — je nach Datenmenge
+dauert das einige Sekunden. Sie öffnet sich in diesem Fenster; mit dem
+Zurück-Knopf des Browsers kommen Sie hierher zurück.</div></div></div>
+
 <div class=box><h2>Gerade in der Luft</h2>
 <table><tr><th>Kennzeichen</th><th>Muster</th><th>ft</th><th>kt</th>
 <th>km</th><th>Quelle</th><th>zuletzt</th></tr>
@@ -270,12 +295,85 @@ Ein Ereignis je Luftfahrzeug und Durchgang.</div></div>
 Alle Zahlen sind Untergrenzen.</div>
 </div></body></html>"""
 
+ARBEIT = tempfile.mkdtemp(prefix="flugspur-")
+_LAUF = {}          # merkt sich laufende Auswertungen
+
+def verfuegbare_tage():
+    t = set()
+    for f in glob.glob(os.path.join(DATA, "*_????-??-??.ndjson")):
+        t.add(os.path.basename(f).rsplit("_", 1)[1][:10])
+    return sorted(t)
+
+def auswerten(skript, arg):
+    """Ruft visualize.py oder summary.py auf. Schreibt nach ARBEIT,
+    weil /data im Monitor absichtlich nur lesend eingebunden ist."""
+    umg = dict(os.environ)
+    umg["TRACKER_DATA_DIR"] = DATA
+    umg["TRACKER_OUT_DIR"] = ARBEIT
+    befehl = [sys.executable, os.path.join(os.path.dirname(
+        os.path.abspath(__file__)), skript)]
+    if arg:
+        befehl.append(arg)
+    r = subprocess.run(befehl, capture_output=True, text=True,
+                       env=umg, timeout=600)
+    return r.returncode, r.stdout, r.stderr
+
+def rahmen(titel, inhalt, zurueck=True):
+    return f"""<!DOCTYPE html><html lang=de><head><meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<title>{html.escape(titel)}</title>
+<style>body{{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+margin:0;padding:18px;background:#f4f6f8;color:#1b2430}}
+.w{{max-width:1050px;margin:0 auto}}
+a.b{{display:inline-block;background:#1b2430;color:#fff;text-decoration:none;
+padding:8px 14px;border-radius:7px;font-size:13px;margin-bottom:14px}}
+pre{{background:#fff;border:1px solid #e2e8ef;border-radius:9px;padding:15px;
+overflow:auto;font-size:12.5px;line-height:1.45}}</style></head><body><div class=w>
+{'<a class=b href="/">&larr; zurück zum Monitor</a>' if zurueck else ''}
+<h1 style="font-size:20px">{html.escape(titel)}</h1>
+{inhalt}</div></body></html>"""
+
 class H(BaseHTTPRequestHandler):
     def do_GET(self):
       try:
         if self.path.startswith("/healthz"):
             self.send_response(200); self.send_header("Content-Type","text/plain")
             self.end_headers(); self.wfile.write(b"ok"); return
+        weg = urlparse(self.path)
+        frage = parse_qs(weg.query)
+        tag = (frage.get("tag") or [None])[0]
+
+        if weg.path == "/karte":
+            code, aus, fehler = auswerten("visualize.py",
+                                          "--all" if tag == "alle" else tag)
+            datei = os.path.join(ARBEIT, "flugbewegungen_gesamt.html"
+                                 if tag == "alle"
+                                 else f"flugbewegungen_{tag}.html")
+            if code == 0 and os.path.exists(datei):
+                nutz = open(datei, "rb").read()
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(nutz)))
+                self.end_headers(); self.wfile.write(nutz); return
+            nutz = rahmen("Grafische Auswertung nicht möglich",
+                          "<pre>" + html.escape((aus or "") + (fehler or "")
+                                                or "keine Ausgabe") + "</pre>").encode()
+            self.send_response(500)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(nutz)))
+            self.end_headers(); self.wfile.write(nutz); return
+
+        if weg.path == "/text":
+            code, aus, fehler = auswerten("summary.py",
+                                          "--all" if tag == "alle" else tag)
+            nutz = rahmen(f"Textauswertung {tag or ''}".strip(),
+                          "<pre>" + html.escape((aus or "") + (fehler or "")
+                                                or "keine Ausgabe") + "</pre>").encode()
+            self.send_response(200 if code == 0 else 500)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(nutz)))
+            self.end_headers(); self.wfile.write(nutz); return
+
         if self.path.startswith("/json"):
             z = zustand()
             nutz = json.dumps({

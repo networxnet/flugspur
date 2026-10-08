@@ -92,6 +92,22 @@ selbst — zum Offenlassen auf einem zweiten Bildschirm:
 - Überflüge je Ortslage seit Mitternacht
 - Dateigrößen und Gesamtverbrauch
 
+**Auswertung auf Knopfdruck.** Oben auf der Seite stehen Schaltflächen:
+
+| Knopf | Ergebnis |
+|---|---|
+| Karte heute / gestern | grafische Auswertung des Tages |
+| Karte alle N Tage | alles zusammengefasst |
+| Text heute / gestern | Textauswertung wie `summary.py` |
+
+Die Auswertung wird beim Anklicken frisch berechnet, nichts ist
+zwischengespeichert. Je nach Datenmenge dauert das einige Sekunden.
+
+Das Ergebnis landet in einem Arbeitsverzeichnis **innerhalb** des
+Containers, nicht in `/data` — der Monitor hat dort bewusst kein
+Schreibrecht. Zum Archivieren weiterhin `visualize.py` im
+Summary-Container aufrufen, das schreibt nach `/data`.
+
 Maschinenlesbar für eigene Auswertungen: `http://<NAS>:8099/json`
 Kurzprüfung, ob der Server lebt: `http://<NAS>:8099/healthz` → `ok`
 
