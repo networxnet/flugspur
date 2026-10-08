@@ -45,6 +45,36 @@ Nichts wird überschrieben — bereits geschriebene Tage bleiben unangetastet.
 
 ---
 
+## 1. Luftfahrzeugkennzeichen statt Hexcode
+
+Angezeigt wird das Kennzeichen (`D-EOQL`), darunter klein der technische
+Hexcode (`3d2b4b`). Der Hexcode bleibt sichtbar, weil er die eindeutige
+Kennung ist — Kennzeichen können bei Halterwechsel neu vergeben werden.
+
+Woher das Kennzeichen kommt:
+
+1. **ADS-B liefert es mit.** In einer Stichprobe hatten 42 von 42 Zielen
+   ein Kennzeichen. Der Logger merkt sich jede Zuordnung in
+   `_kennzeichen.json`, damit sie auch später bekannt bleibt.
+2. **Die OGN-Gerätedatenbank** ordnet FLARM-Kennungen ein Kennzeichen und
+   Muster zu, rund 34.000 Einträge. Liegt als `_ddb.json` im
+   Datenverzeichnis und wird wöchentlich erneuert.
+3. **Sonst der Hexcode.** Nicht jedes Luftfahrzeug sendet ein
+   Kennzeichen. Das ist kein Fehler, sondern die Realität der Rohdaten.
+
+Prüfen, wie viele Zuordnungen bekannt sind:
+
+```sh
+docker exec -it flugspur-summary python3 /app/kennzeichen.py /data
+```
+
+**Datenschutz:** Erfasst werden Kennzeichen und Muster, keine Halter- oder
+Personendaten. Die OGN-Datenbank enthält nur, was Geräteinhaber selbst
+veröffentlichen; wer widerspricht, erscheint dort nicht. Für eine
+Lärmauswertung ist ohnehin das Muster relevant, nicht der Halter.
+
+---
+
 ## 1a. Live-Monitor im Browser
 
 ```

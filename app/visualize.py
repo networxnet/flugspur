@@ -14,7 +14,7 @@ import json, os, sys, math, glob, html
 from collections import defaultdict
 from datetime import datetime
 
-import profil
+import profil, kennzeichen
 
 _P       = profil.lade()
 LAT      = _P["lat"]
@@ -63,6 +63,14 @@ def _ogn_id(r):
         return i[3:].lower()
     return i
 
+_NAMEN = None
+
+def _namen():
+    global _NAMEN
+    if _NAMEN is None:
+        _NAMEN = kennzeichen.Namen(DATA_DIR)
+    return _NAMEN
+
 def load(days):
     pts = []
     for day in days:
@@ -79,14 +87,25 @@ def load(days):
                         r = json.loads(line)
                     except json.JSONDecodeError:
                         continue
+                    N = _namen()
                     if r.get("net") == "OGN":
-                        p = {"t": r.get("ts"), "id": r.get("id"), "lat": r.get("lat"),
+                        p = {"t": r.get("ts"), "id": _ogn_id(r), "lat": r.get("lat"),
                              "lon": r.get("lon"), "alt": r.get("alt_ft"),
-                             "desc": None, "net": "OGN"}
+                             "desc": N.muster(hexid=r.get("icao"),
+                                              ogn_id=r.get("id"),
+                                              desc=r.get("typ")),
+                             "kz": N.anzeige(hexid=r.get("icao"),
+                                             ogn_id=r.get("id"),
+                                             reg=r.get("reg")),
+                             "net": "OGN"}
                     else:
+                        N.lerne(r.get("icao"), r.get("reg"),
+                                r.get("type"), r.get("desc"))
                         p = {"t": r.get("t"), "id": r.get("icao"), "lat": r.get("lat"),
                              "lon": r.get("lon"), "alt": r.get("alt_ft"),
-                             "desc": r.get("desc") or r.get("type"), "net": "ADSB"}
+                             "desc": r.get("desc") or r.get("type"),
+                             "kz": N.anzeige(hexid=r.get("icao"), reg=r.get("reg")),
+                             "net": "ADSB"}
                     if (p["t"] and p["id"] and p["lat"] is not None
                             and (p["alt"] is None or p["alt"] <= _P["max_alt_ft"])):
                         pts.append(p)

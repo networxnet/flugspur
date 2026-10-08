@@ -95,6 +95,9 @@ def normalise(ac, source, now):
 
 def main():
     os.makedirs(DATA_DIR, exist_ok=True)
+    import kennzeichen
+    namen = kennzeichen.Namen(DATA_DIR)
+    gelernt_zuletzt = 0
     log(f"Start {SITE} ({_P['name']}) | {LAT},{LON} | {RADIUS_NM} NM | < {MAX_ALT:.0f} ft "
         f"| alle {INTERVAL}s | -> {DATA_DIR}")
     total = 0
@@ -122,7 +125,21 @@ def main():
                     if rec:
                         fh.write(json.dumps(rec, ensure_ascii=False) + "\n")
                         n += 1
+                        if rec.get("reg"):
+                            namen.lerne(rec["icao"], rec["reg"],
+                                        rec.get("type"), rec.get("desc"))
                 fh.flush()
+                # Zuordnung Hexcode -> Kennzeichen alle 5 Minuten sichern.
+                # Dadurch bleibt sie bekannt, wenn dieselbe Maschine spaeter
+                # nur ueber OGN oder ganz ohne Kennzeichenfeld auftaucht.
+                if now - gelernt_zuletzt > 300:
+                    try:
+                        ges = kennzeichen.reg_sichern(DATA_DIR, namen.reg)
+                        if gelernt_zuletzt == 0:
+                            log(f"Kennzeichen bekannt: {ges}")
+                    except Exception as e:
+                        log(f"Kennzeichenliste nicht schreibbar: {e}")
+                    gelernt_zuletzt = now
                 total += n
                 with open(os.path.join(DATA_DIR, "_heartbeat_adsb.txt"), "w") as hb:
                     hb.write(f"{int(now)}\n{datetime.now():%Y-%m-%d %H:%M:%S}\n"

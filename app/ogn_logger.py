@@ -57,6 +57,12 @@ def dist_km(la, lo):
 
 
 def run():
+    import kennzeichen
+    kennzeichen.ddb_aktualisieren(OUT, melde=log)
+    namen = kennzeichen.Namen(OUT)
+    log(f"Kennzeichen: {namen.umfang[0]} aus ADS-B gelernt, "
+        f"{namen.umfang[1]} in der OGN-Geraetedatenbank")
+    ddb_zuletzt = time.time()
     while True:
         try:
             log(f"Verbinde {APRS_HOST}:{APRS_PORT} Filter {FILTER}")
@@ -93,8 +99,11 @@ def run():
                     icao = (kennung[3:].lower()
                             if kennung.startswith("ICA") and len(kennung) == 9
                             else None)
+                    kz = namen.kennzeichen(hexid=icao, ogn_id=kennung)
                     rec = {
                         "ts": int(time.time()), "id": kennung, "icao": icao,
+                        "reg": kz,
+                        "typ": namen.muster(hexid=icao, ogn_id=kennung),
                         "lat": round(la, 5),
                         "lon": round(lo, 5), "alt_ft": int(m["alt"]),
                         "course": int(m["course"]), "kt": int(m["speed"]),
@@ -110,6 +119,12 @@ def run():
                                  f"gesamt={n}\n")
                     if n % 100 == 0:
                         log(f"{n} OGN-Positionen erfasst")
+                    # einmal taeglich nachsehen, ob neue Geraete gemeldet sind,
+                    # und zwischendurch neu von ADS-B Gelerntes uebernehmen
+                    if time.time() - ddb_zuletzt > 86400:
+                        kennzeichen.ddb_aktualisieren(OUT, melde=log)
+                        namen = kennzeichen.Namen(OUT)
+                        ddb_zuletzt = time.time()
         except Exception as e:
             log(f"Fehler: {type(e).__name__}: {e} -- neuer Versuch in 30s")
             time.sleep(30)

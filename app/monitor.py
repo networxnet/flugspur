@@ -15,7 +15,7 @@ from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import profil
+import profil, kennzeichen
 
 P = profil.lade()
 DATA = profil._env("DATA_DIR") or "/data"
@@ -36,6 +36,17 @@ def heute():
     return datetime.now().strftime("%Y-%m-%d")
 
 _CACHE = {}
+_NAMEN = {"zeit": 0, "obj": None}
+
+def namen():
+    """Kennzeichenauflösung, hoechstens alle 5 Minuten neu einlesen."""
+    if _NAMEN["obj"] is None or time.time() - _NAMEN["zeit"] > 300:
+        try:
+            _NAMEN["obj"] = kennzeichen.Namen(DATA)
+        except Exception:
+            _NAMEN["obj"] = _NAMEN["obj"] or kennzeichen.Namen("/tmp")
+        _NAMEN["zeit"] = time.time()
+    return _NAMEN["obj"]
 
 def lies(tag):
     """Liest den Tag und liefert vereinheitlichte Punkte (mit Zwischenspeicher)."""
@@ -57,16 +68,27 @@ def lies(tag):
                     r = json.loads(z)
                 except json.JSONDecodeError:
                     continue
+                N = namen()
                 if art == "OGN":
                     pts.append({"t": r.get("ts"), "id": _ogn_id(r), "q": "OGN",
                                 "lat": r.get("lat"), "lon": r.get("lon"),
-                                "alt": r.get("alt_ft"), "desc": None,
+                                "alt": r.get("alt_ft"),
+                                "desc": N.muster(hexid=r.get("icao"),
+                                                 ogn_id=r.get("id"),
+                                                 desc=r.get("typ")),
+                                "kz": N.anzeige(hexid=r.get("icao"),
+                                                ogn_id=r.get("id"),
+                                                reg=r.get("reg")),
                                 "kt": r.get("kt")})
                 else:
+                    N.lerne(r.get("icao"), r.get("reg"),
+                            r.get("type"), r.get("desc"))
                     pts.append({"t": r.get("t"), "id": r.get("icao"), "q": "ADSB",
                                 "lat": r.get("lat"), "lon": r.get("lon"),
                                 "alt": r.get("alt_ft"),
                                 "desc": r.get("desc") or r.get("type"),
+                                "kz": N.anzeige(hexid=r.get("icao"),
+                                                reg=r.get("reg")),
                                 "kt": r.get("gs_kt")})
     pts = [p for p in pts if p["t"] and p["id"] and p["lat"] is not None]
     pts.sort(key=lambda p: p["t"])
@@ -92,10 +114,17 @@ def zustand():
     letzte5 = [p for p in pts if jetzt - p["t"] <= 300]
     letzte60 = [p for p in pts if jetzt - p["t"] <= 3600]
 
-    # aktuell sichtbare Maschinen
+    # aktuell sichtbare Maschinen. Rollende und abgestellte Maschinen auf
+    # dem Vorfeld in Duesseldorf senden weiter -- sie fliegen aber nicht.
+    def am_boden(p):
+        a, k = p.get("alt"), p.get("kt")
+        if a is not None and a <= 0:
+            return True
+        return a is not None and a < 500 and k is not None and k < 40
+
     aktuell = {}
     for p in pts:
-        if jetzt - p["t"] <= 120:
+        if jetzt - p["t"] <= 120 and not am_boden(p):
             aktuell[p["id"]] = p
 
     # Ueberflüge heute, getrennt nach tief und gesamt
@@ -146,7 +175,8 @@ def seite():
         d = profil.hav_km(P["lat"], P["lon"], p["lat"], p["lon"])
         reihen.append(
             f"<tr{' style=background:#fff3f0' if tief else ''}>"
-            f"<td><code>{e(p['id'])}</code></td>"
+            f"<td><b>{e(p.get('kz') or p['id'])}</b>"
+            f"<div style='font-size:10px;color:#9aa4b0'><code>{e(p['id'])}</code></div></td>"
             f"<td>{e(p['desc'] or '-')}</td>"
             f"<td align=right>{p['alt'] if p['alt'] is not None else '-'}</td>"
             f"<td align=right>{int(p['kt']) if p['kt'] else '-'}</td>"
@@ -220,7 +250,7 @@ code{{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}}
 </div>
 
 <div class=box><h2>Gerade in der Luft</h2>
-<table><tr><th>Kennung</th><th>Muster</th><th>ft</th><th>kt</th>
+<table><tr><th>Kennzeichen</th><th>Muster</th><th>ft</th><th>kt</th>
 <th>km</th><th>Quelle</th><th>zuletzt</th></tr>
 {''.join(reihen)}</table></div>
 

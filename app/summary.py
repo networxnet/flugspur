@@ -9,7 +9,7 @@ Aufruf:
 import json, os, sys, math, glob, csv
 from collections import defaultdict
 
-import profil
+import profil, kennzeichen
 
 _P       = profil.lade()
 LAT      = _P["lat"]
@@ -41,9 +41,18 @@ def _ogn_id(r):
         return i[3:].lower()
     return i
 
+_NAMEN = None
+
+def _namen():
+    global _NAMEN
+    if _NAMEN is None:
+        _NAMEN = kennzeichen.Namen(DATA_DIR)
+    return _NAMEN
+
 def load_day(day):
     """Liest ADS-B und OGN eines Tages und vereinheitlicht die Felder."""
     pts = []
+    N = _namen()
     for path in (os.path.join(DATA_DIR, f"adsb_{day}.ndjson"),
                  os.path.join(DATA_DIR, f"ogn_{day}.ndjson")):
         if not os.path.exists(path):
@@ -61,14 +70,23 @@ def load_day(day):
                     pts.append({
                         "t": r.get("ts"), "id": _ogn_id(r), "lat": r.get("lat"),
                         "lon": r.get("lon"), "alt": r.get("alt_ft"),
-                        "trk": r.get("course"), "desc": None, "net": "OGN",
+                        "trk": r.get("course"),
+                        "desc": N.muster(hexid=r.get("icao"), ogn_id=r.get("id"),
+                                         desc=r.get("typ")),
+                        "kz": N.anzeige(hexid=r.get("icao"), ogn_id=r.get("id"),
+                                        reg=r.get("reg")),
+                        "net": "OGN",
                     })
                 else:
+                    N.lerne(r.get("icao"), r.get("reg"),
+                            r.get("type"), r.get("desc"))
                     pts.append({
                         "t": r.get("t"), "id": r.get("icao"), "lat": r.get("lat"),
                         "lon": r.get("lon"), "alt": r.get("alt_ft"),
                         "trk": r.get("track"),
-                        "desc": r.get("desc") or r.get("type"), "net": "ADSB",
+                        "desc": r.get("desc") or r.get("type"),
+                        "kz": N.anzeige(hexid=r.get("icao"), reg=r.get("reg")),
+                        "net": "ADSB",
                     })
     _max = _P["max_alt_ft"]
     pts = [p for p in pts if p["t"] and p["id"] and p["lat"] is not None
@@ -123,7 +141,9 @@ def report(day):
         print("\nPlatzrundenerkennung fuer diesen Platz deaktiviert "
               "(kein Platzrundenbetrieb).")
     for acid, d, dur, n, minalt in verdacht:
-        print(f"  {acid:8s} {d[:28]:30s} {dur:5.0f} min  {n:4d} Pos  min {minalt:.0f} ft")
+        kz = _namen().anzeige(hexid=acid)
+        print(f"  {kz:9s} {acid:7s} {d[:26]:28s} {dur:5.0f} min  "
+              f"{n:4d} Pos  min {minalt:.0f} ft")
     if PLATZRUNDE and not verdacht:
         print("  (keiner)")
 
