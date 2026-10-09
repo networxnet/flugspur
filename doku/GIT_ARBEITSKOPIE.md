@@ -33,54 +33,85 @@ Aufzeichnung wird durch die Umstellung nicht unterbrochen.
 
 ## Einrichtung, einmalig
 
-### 1. Repository auf GitHub anlegen
+Kürzester Weg: Das Projekt landet direkt auf dem Share und wird von dort
+veröffentlicht. So entsteht nur **eine** Arbeitskopie, nicht zwei.
 
-In GitHub Desktop: **File → Add local repository**, den entpackten
-Projektordner wählen, dann **Publish repository**. Haken bei
-*Keep this code private* setzen.
+### 1. Netzlaufwerk verbinden
 
-Die 14 bisherigen Commits bleiben dabei erhalten — die Entwicklung ist
-von Anfang an nachvollziehbar.
-
-### 2. Netzlaufwerk verbinden
-
-Im Windows-Explorer: **Dieser PC → Netzlaufwerk verbinden**
+Windows-Explorer → **Dieser PC** → **Netzlaufwerk verbinden**
 
 ```
 \\<Adresse-des-NAS>\Container
 ```
 
-Laufwerksbuchstabe zum Beispiel `Z:`. Anmeldedaten speichern lassen.
+Buchstabe zum Beispiel `Z:`, Anmeldedaten speichern lassen. Sie sollten
+darin den vorhandenen Ordner `flugspur` sehen — dann stimmt die Freigabe.
 
-### 3. Arbeitskopie auf den Share klonen
+### 2. Paket entpacken
 
-In GitHub Desktop: **File → Clone repository → Local path**, und als
-Ziel `Z:\flugspur-code` eintragen.
+`flugspur-mit-historie.zip` nach
 
-Der Ordner muss noch nicht existieren, GitHub Desktop legt ihn an. Er
-muss aber **leer** sein — klonen in einen gefüllten Ordner lehnt Git ab.
+```
+Z:\flugspur-code
+```
 
-### 4. Stack auf den neuen Pfad zeigen lassen
+entpacken. Achten Sie darauf, dass **kein doppelter Ordner** entsteht:
+In `Z:\flugspur-code` müssen direkt `app`, `doku`, `README.md` und der
+versteckte Ordner `.git` liegen — nicht noch ein Unterordner `flugspur`.
 
-In Portainer: Stack `flugspur` → **Editor**. Die Pfade stehen jetzt als
-Variablen in der Compose-Datei, Sie müssen nichts im Text ändern.
-Tragen Sie unten unter **Environment variables** ein:
+Falls Sie `.git` nicht sehen: Im Explorer unter **Ansicht** die
+*ausgeblendeten Elemente* einschalten. Ohne diesen Ordner fehlt die
+Versionsgeschichte, und GitHub Desktop erkennt das Projekt nicht.
+
+### 3. In GitHub Desktop aufnehmen
+
+**File → Add local repository**, Ordner `Z:\flugspur-code` wählen.
+
+Erscheint die Meldung, dies sei kein Git-Repository, wurde das Paket
+falsch entpackt — zurück zu Schritt 2.
+
+Unter **History** müssen jetzt **15 Commits** stehen, der oberste
+beginnt mit „Monitor: Auswertungsknoepfe".
+
+### 4. Veröffentlichen
+
+**Publish repository**. Name `flugspur`, Haken bei
+**Keep this code private** setzen. Bestätigen.
+
+Damit liegt die vollständige Entwicklungsgeschichte auf GitHub, und ich
+kann Ihnen künftig Änderungen über dieses Repository zukommen lassen.
+
+### 5. Stack auf den neuen Pfad zeigen lassen
+
+In Portainer: Stack `flugspur` → **Editor**. Im Text ändern Sie nichts;
+tragen Sie unten unter **Environment variables** ein:
 
 | name | value |
 |---|---|
 | `FS_APP_PFAD` | `/share/CACHEDEV1_DATA/Container/flugspur-code/app` |
 
-`FS_DATA_PFAD` lassen Sie weg — die Vorgabe zeigt bereits auf
-`/share/CACHEDEV1_DATA/Container/flugspur/data`, wo Ihre Daten liegen.
+`FS_DATA_PFAD` weglassen — die Vorgabe zeigt bereits auf
+`/share/CACHEDEV1_DATA/Container/flugspur/data`, wo Ihre Mitschnitte
+liegen. Dann **Update the stack**.
 
-Dann **Update the stack**.
+### 6. Prüfen
 
-### 5. Prüfen
+Monitor aufrufen. Drei Dinge müssen jetzt anders aussehen:
 
-Monitor aufrufen. Steht dort „Überflüge heute · 1,5 km Umkreis" mit den
-Spalten *tief* und *gesamt*, läuft der neue Stand aus der Arbeitskopie.
+- Überschrift **„Überflüge heute · 1,5 km Umkreis"** statt 1 km
+- zwei Spalten **tief** und **gesamt**
+- die Auswertungsknöpfe als gruppierte Schaltflächen statt als Textlinks
 
----
+Stimmt das, läuft der Stack aus der Arbeitskopie und das Hochladen
+einzelner Dateien hat ein Ende.
+
+### 7. Den alten Programmordner aufräumen
+
+Erst wenn Schritt 6 geklappt hat: Der alte Ordner
+`Container/flugspur/app` wird nicht mehr gebraucht. Lassen Sie ihn ein
+paar Tage als Rückfallebene liegen, dann löschen Sie ihn.
+
+**`Container/flugspur/data` bleibt.** Dort liegen Ihre Mitschnitte.
 
 ## Der Alltag danach
 
