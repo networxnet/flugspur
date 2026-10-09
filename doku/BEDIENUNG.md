@@ -51,9 +51,26 @@ Die Karte zeigt eine OpenStreetMap-Grundlage, **Nordpfeil oben rechts**
 und einen **Maßstabsbalken unten links**. Die Ortslagen sind keine Kreise
 mehr, sondern die tatsächlich bebauten Flächen laut OpenStreetMap.
 
-Ein Überflug zählt damit, wenn das Luftfahrzeug **über bebautem Gebiet**
-war — nicht mehr, wenn es irgendwo in einem 1,5-km-Kreis um einen Punkt
-flog. Das ist genauer und leichter zu verteidigen.
+Jede Ortslage hat eine eigene Farbe; die vielen OSM-Teilflächen werden
+über ein 100-m-Raster zu **einer** Fläche je Ort verschmolzen.
+
+### Wann ein Lärmereignis zählt
+
+Nicht beim direkten Überflug, sondern nach **Schrägentfernung** zur
+bebauten Fläche — Standard 1.500 m, einstellbar über `laerm_schraeg_m`.
+
+Der Grund: Für die Belastung zählt der Abstand zum Ohr, und der setzt
+sich aus seitlichem Abstand und Flughöhe zusammen.
+
+| Fall | Schrägentfernung | zählt |
+|---|---|---|
+| Cessna, 900 ft, 600 m seitlich | 752 m | ja |
+| Airbus, 7.000 ft, direkt darüber | 2.136 m | nein |
+
+Ein reiner „über der Fläche"-Test würde genau das Gegenteil liefern —
+den hohen Verkehrsjet zählen und das tief fliegende Schulflugzeug
+nebenan übersehen. Die Tabelle weist zusätzlich **tief** (höchstens
+2.500 ft) getrennt von **gesamt** aus.
 
 Beides wird einmalig geholt und liegt danach im Profil:
 

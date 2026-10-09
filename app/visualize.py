@@ -23,6 +23,10 @@ DATA_DIR = profil._env("DATA_DIR") or "/data"
 OUT_DIR  = profil._env("OUT_DIR") or DATA_DIR
 OVER_KM  = _P["overflight_km"]
 ZONEN    = profil.lade_zonen(_P)
+FELDER   = profil.lade_zonenfelder(_P, ZONEN)
+LAERM_M  = float(_P.get("laerm_schraeg_m") or 1500)
+FARBEN   = ["#c2185b", "#1565c0", "#2e7d32", "#ef6c00",
+            "#6a1b9a", "#00838f", "#9e5b00", "#4e342e"]
 def _grundkarte():
     pf = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                       "plaetze", f"grundkarte_{_P['code'].lower()}.json")
@@ -148,30 +152,45 @@ def grundkarte_svg():
 
 
 def zonen_svg(mit_namen=True):
-    """Ortslagen als Flaechen mit Umrandung statt als Kreise."""
+    """Ortslagen als zusammenhaengende, farblich einheitliche Flaechen.
+
+    Die einzelnen OSM-Teilflaechen werden ueber ein 100-m-Raster zu einer
+    Flaeche je Ortslage verschmolzen -- sonst zerfaellt ein Ort optisch in
+    Dutzende Schnipsel."""
     out = []
-    for name, _, _ in ORTE:
-        ringe = ZONEN.get(name)
-        if not ringe:
+    for idx, (name, la, lo) in enumerate(ORTE):
+        feld = FELDER.get(name)
+        if not feld:
             continue
-        for r in ringe:
-            d = " ".join(("M" if i == 0 else "L") +
-                         f"{proj(a, b)[0]:.1f},{proj(a, b)[1]:.1f}"
-                         for i, (a, b) in enumerate(r)) + " Z"
-            out.append(f'<path d="{d}" fill="#c2185b" fill-opacity="0.13" '
-                       f'stroke="#ad1457" stroke-width="1.6" '
-                       f'stroke-linejoin="round"/>')
+        farbe = FARBEN[idx % len(FARBEN)]
+        teile = []
+        for u, l, o, r in feld.zellen():
+            x1, y1 = proj(o, l)
+            x2, y2 = proj(u, r)
+            teile.append(f'<rect x="{x1:.1f}" y="{y1:.1f}" '
+                         f'width="{max(x2-x1,0.6):.1f}" height="{max(y2-y1,0.6):.1f}"/>')
+        if not teile:
+            continue
+        # zweimal zeichnen: breiter Rand aussen, Flaeche innen -> wirkt wie
+        # eine einzige umrandete Zone statt vieler Kacheln
+        out.append(f'<g fill="{farbe}" stroke="{farbe}" stroke-width="7" '
+                   f'stroke-linejoin="round" opacity="0.30">'
+                   + "".join(teile) + '</g>')
+        out.append(f'<g fill="{farbe}" stroke="{farbe}" stroke-width="2.5" '
+                   f'stroke-linejoin="round" fill-opacity="0.34" '
+                   f'stroke-opacity="0.95">' + "".join(teile) + '</g>')
     if mit_namen:
-        for name, la, lo in ORTE:
-            if name not in ZONEN:
+        for idx, (name, la, lo) in enumerate(ORTE):
+            if name not in FELDER:
                 continue
             x, y = proj(la, lo)
             if not (0 <= x <= SZ and 0 <= y <= SZ):
                 continue
-            kurz = name.split("/")[0]
-            out.append(f'<text x="{x:.1f}" y="{y:.1f}" font-size="12" '
-                       f'font-weight="600" text-anchor="middle" fill="#7b1140" '
-                       f'stroke="#ffffff" stroke-width="3.2" paint-order="stroke" '
+            kurz = name.split("-", 1)[1] if "-" in name else name
+            out.append(f'<text x="{x:.1f}" y="{y:.1f}" font-size="12.5" '
+                       f'font-weight="700" text-anchor="middle" '
+                       f'fill="{FARBEN[idx % len(FARBEN)]}" '
+                       f'stroke="#ffffff" stroke-width="3.4" paint-order="stroke" '
                        f'>{esc(kurz)}</text>')
     return out
 
@@ -336,13 +355,19 @@ def heatmap(pts):
         r = int(255 - 180*f); g = int(240 - 215*f); b = int(245 - 185*f)
         s.append(f'<rect x="{gx*cs:.1f}" y="{gy*cs:.1f}" width="{cs:.1f}" '
                  f'height="{cs:.1f}" fill="rgb({r},{g},{b})" fill-opacity="0.92"/>')
-    for name, _, _ in ORTE:
-        for r in ZONEN.get(name, []):
-            d = " ".join(("M" if i == 0 else "L") +
-                         f"{proj(a, b)[0]:.1f},{proj(a, b)[1]:.1f}"
-                         for i, (a, b) in enumerate(r)) + " Z"
-            s.append(f'<path d="{d}" fill="none" stroke="#111" '
-                     f'stroke-width="1.3" stroke-opacity="0.75"/>')
+    for idx, (name, _, _) in enumerate(ORTE):
+        feld = FELDER.get(name)
+        if not feld:
+            continue
+        farbe = FARBEN[idx % len(FARBEN)]
+        teile = []
+        for u, l, o, r in feld.zellen():
+            x1, y1 = proj(o, l); x2, y2 = proj(u, r)
+            teile.append(f'<rect x="{x1:.1f}" y="{y1:.1f}" '
+                         f'width="{max(x2-x1,0.6):.1f}" height="{max(y2-y1,0.6):.1f}"/>')
+        s.append(f'<g fill="none" stroke="{farbe}" stroke-width="5" '
+                 f'stroke-linejoin="round" stroke-opacity="0.85">'
+                 + "".join(teile) + '</g>')
     for name, ola, olo in ORTE:
         x, y = proj(ola, olo)
         if 0 <= x <= SZ and 0 <= y <= SZ:
@@ -386,9 +411,9 @@ def ueberfluege(pts):
     res = {}
     for name, ola, olo in ORTE:
         last, ev = {}, []
-        ringe = ZONEN.get(name)
+        feld = FELDER.get(name)
         for p in pts:
-            if (profil.in_zone(p["lat"], p["lon"], ringe) if ringe
+            if (feld.schraeg_m(p["lat"], p["lon"], p["alt"]) <= LAERM_M if feld
                     else hav_km(ola, olo, p["lat"], p["lon"]) <= OVER_KM):
                 prev = last.get(p["id"])
                 if prev is None or p["t"] - prev > DEBOUNCE:
@@ -508,7 +533,9 @@ empfohlene Platzrunde hält oder eigene Wege nimmt.</p>
 500 × 500 Metern.</p>
 
 <h2>3. Welcher Ort ist wie stark betroffen?</h2>
-<p>Gezählt wird jeder Durchgang eines Flugzeugs über der bebauten Fläche.
+<p>Gezählt wird jeder Durchgang, bei dem die <b>Schrägentfernung</b> zur
+bebauten Fläche {LAERM_M:.0f} m oder weniger betrug — also auch ein Flug
+dicht daneben, nicht nur der direkte Überflug.
 Eine kreisende Maschine zählt pro Runde einmal — nicht pro Sekunde.</p>
 {bars(orte_rows, color="#c0392b")}
 

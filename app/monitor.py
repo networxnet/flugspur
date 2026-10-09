@@ -25,6 +25,8 @@ PORT = int(profil._env("MONITOR_PORT") or 8099)
 LOW_FT = P["low_ft"]
 OVER_KM = P["overflight_km"]
 ZONEN = profil.lade_zonen(P)
+FELDER = profil.lade_zonenfelder(P, ZONEN)
+LAERM_M = float(P.get("laerm_schraeg_m") or 1500)
 
 def _ogn_id(r):
     k = r.get("icao")
@@ -135,8 +137,8 @@ def zustand():
     for name, ola, olo in P["orte"]:
         zuletzt = {}
         for p in pts:
-            if (profil.in_zone(p["lat"], p["lon"], ZONEN[name])
-                    if name in ZONEN
+            feld = FELDER.get(name)
+            if (feld.schraeg_m(p["lat"], p["lon"], p["alt"]) <= LAERM_M if feld
                     else profil.hav_km(ola, olo, p["lat"], p["lon"]) <= OVER_KM):
                 v = zuletzt.get(p["id"])
                 if v is None or p["t"] - v > 180:
@@ -302,13 +304,14 @@ Zurück-Knopf des Browsers kommen Sie hierher zurück.</div></div></div>
 <th>km</th><th>Quelle</th><th>zuletzt</th></tr>
 {''.join(reihen)}</table></div>
 
-<div class=box><h2>Überflüge heute &middot; {"bebaute Ortsfläche" if ZONEN
-  else f"{OVER_KM:g} km Umkreis"}</h2>
+<div class=box><h2>Lärmereignisse heute &middot; {f"Schrägentfernung bis {LAERM_M:.0f} m"
+  if FELDER else f"{OVER_KM:g} km Umkreis"}</h2>
 <table>{orte}</table>
 <div style="padding:9px 15px;font-size:12px;color:#667;border-top:1px solid #eef2f6">
-<b>tief</b> = Durchgang in höchstens {LOW_FT:.0f} ft, lärmrelevant &middot;
-<b>gesamt</b> = alle Höhen, enthält auch Düsseldorfer Verkehr in 5.000–7.000 ft.
-Ein Ereignis je Luftfahrzeug und Durchgang.</div></div>
+<b>tief</b> = Durchgang in höchstens {LOW_FT:.0f} ft &middot;
+<b>gesamt</b> = alle Höhen. Gezählt wird, wenn die <b>Schrägentfernung</b>
+zur bebauten Fläche {LAERM_M:.0f} m oder weniger betrug — ein direkter
+Überflug ist dafür nicht nötig. Ein Ereignis je Luftfahrzeug und Durchgang.</div></div>
 
 <div class=box><h2>Dateien</h2>
 <table>{dat}

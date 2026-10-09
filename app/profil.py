@@ -186,3 +186,109 @@ def zonen_umgriff(ringe):
     la = [p[0] for r in ringe for p in r]
     lo = [p[1] for r in ringe for p in r]
     return min(la), min(lo), max(la), max(lo)
+
+
+# --------------------------------------------------- Laermrelevanz je Zone
+
+class Zonenfeld:
+    """Entfernungsfeld einer Ortslage.
+
+    Liefert zu jedem Punkt die seitliche Entfernung zur bebauten Flaeche.
+    Daraus und aus der Flughoehe ergibt sich die Schraegentfernung -- das
+    Mass, das fuer die Laermbelastung zaehlt. Ein direkter Ueberflug ist
+    dafuer nicht noetig: Eine tief fliegende Maschine 500 m daneben ist
+    naeher als ein Verkehrsflugzeug senkrecht darueber in 7000 ft.
+
+    Intern ein Raster von 100 m. Das genuegt: Die Positionsmeldungen
+    selbst sind nicht genauer, und die Ortsgrenze ist ohnehin keine
+    scharfe Linie.
+    """
+
+    ZELLE_M = 100.0
+    MAX_M = 2500.0          # darueber hinaus nicht mehr von Belang
+
+    def __init__(self, ringe):
+        self.ringe = ringe
+        la = [p[0] for r in ringe for p in r]
+        lo = [p[1] for r in ringe for p in r]
+        rand = self.MAX_M / 1000.0
+        self.kla, self.klo = km_pro_grad(sum(la) / len(la))
+        self.la0 = min(la) - rand / self.kla
+        self.lo0 = min(lo) - rand / self.klo
+        self.nla = int((max(la) + rand / self.kla - self.la0)
+                       * self.kla * 1000 / self.ZELLE_M) + 2
+        self.nlo = int((max(lo) + rand / self.klo - self.lo0)
+                       * self.klo * 1000 / self.ZELLE_M) + 2
+        self._feld = self._bauen()
+
+    def _zelle(self, lat, lon):
+        return (int((lat - self.la0) * self.kla * 1000 / self.ZELLE_M),
+                int((lon - self.lo0) * self.klo * 1000 / self.ZELLE_M))
+
+    def _mitte(self, i, j):
+        return (self.la0 + (i + 0.5) * self.ZELLE_M / 1000 / self.kla,
+                self.lo0 + (j + 0.5) * self.ZELLE_M / 1000 / self.klo)
+
+    def _bauen(self):
+        """Breitensuche vom bebauten Gebiet nach aussen."""
+        from collections import deque
+        gross = 10 ** 9
+        feld = [[gross] * self.nlo for _ in range(self.nla)]
+        q = deque()
+        for i in range(self.nla):
+            for j in range(self.nlo):
+                la, lo = self._mitte(i, j)
+                if in_zone(la, lo, self.ringe):
+                    feld[i][j] = 0
+                    q.append((i, j))
+        maxschritt = int(self.MAX_M / self.ZELLE_M)
+        while q:
+            i, j = q.popleft()
+            if feld[i][j] >= maxschritt:
+                continue
+            for di, dj in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                a, b = i + di, j + dj
+                if 0 <= a < self.nla and 0 <= b < self.nlo \
+                        and feld[a][b] > feld[i][j] + 1:
+                    feld[a][b] = feld[i][j] + 1
+                    q.append((a, b))
+        return feld
+
+    def seitlich_m(self, lat, lon):
+        """Seitliche Entfernung zur bebauten Flaeche in Metern."""
+        i, j = self._zelle(lat, lon)
+        if not (0 <= i < self.nla and 0 <= j < self.nlo):
+            return self.MAX_M
+        return min(self._feld[i][j] * self.ZELLE_M, self.MAX_M)
+
+    def schraeg_m(self, lat, lon, alt_ft):
+        """Schraegentfernung zur naechsten Bebauung in Metern."""
+        import math as _m
+        s = self.seitlich_m(lat, lon)
+        h = (alt_ft or 0) * 0.3048
+        return _m.hypot(s, h)
+
+    def zellen(self):
+        """Alle bebauten Zellen als (lat_unten, lon_links, lat_oben, lon_rechts)."""
+        out = []
+        for i in range(self.nla):
+            j = 0
+            while j < self.nlo:
+                if self._feld[i][j] == 0:
+                    k = j
+                    while k < self.nlo and self._feld[i][k] == 0:
+                        k += 1
+                    u, l = self._mitte(i, j)
+                    o, r = self._mitte(i, k - 1)
+                    h = self.ZELLE_M / 1000 / self.kla / 2
+                    b = self.ZELLE_M / 1000 / self.klo / 2
+                    out.append((u - h, l - b, o + h, r + b))
+                    j = k
+                else:
+                    j += 1
+        return out
+
+
+def lade_zonenfelder(P, zonen=None):
+    z = zonen if zonen is not None else lade_zonen(P)
+    return {n: Zonenfeld(r) for n, r in z.items() if r}

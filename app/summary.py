@@ -17,12 +17,18 @@ LON      = _P["lon"]
 DATA_DIR = profil._env("DATA_DIR") or "/data"
 OVER_KM  = _P["overflight_km"]
 ZONEN    = profil.lade_zonen(_P)
+FELDER   = profil.lade_zonenfelder(_P, ZONEN)
+LAERM_M  = float(_P.get("laerm_schraeg_m") or 1500)
 
-def _trifft(name, ola, olo, lat, lon):
-    """Ueberflug: innerhalb der Ortsflaeche, sonst ersatzweise im Umkreis."""
-    ringe = ZONEN.get(name)
-    if ringe:
-        return profil.in_zone(lat, lon, ringe)
+def _trifft(name, ola, olo, lat, lon, alt=None):
+    """Laermereignis: Schraegentfernung zur Bebauung unter der Schwelle.
+
+    Ein direkter Ueberflug ist dafuer nicht noetig. Massgeblich ist der
+    tatsaechliche Abstand zum Ohr -- seitlicher Abstand und Flughoehe
+    zusammen."""
+    feld = FELDER.get(name)
+    if feld:
+        return feld.schraeg_m(lat, lon, alt) <= LAERM_M
     return hav_km(ola, olo, lat, lon) <= OVER_KM
 LOW_FT   = _P["low_ft"]
 RUNWAYS  = _P["runways"]
@@ -185,7 +191,8 @@ def report(day):
 
     # --- Ueberflugereignisse ---
     print(f"\nUeberflug-Ereignisse je Ortslage "
-          f"({'echte Ortsflaeche aus OpenStreetMap' if ZONEN else f'Radius {OVER_KM} km'}, "
+          f"({f'Schraegentfernung bis {LAERM_M:.0f} m zur bebauten Flaeche'
+             if FELDER else f'Radius {OVER_KM} km'}, "
           f"ein Ereignis je Luftfahrzeug und Durchgang).")
     print(f"  'tief' = hoechstens {LOW_FT:.0f} ft, laermrelevant. 'gesamt' = alle "
           f"Hoehen,\n  enthaelt auch hohen Durchgangsverkehr Richtung Duesseldorf.")
@@ -193,7 +200,7 @@ def report(day):
     for ortname, ola, olo in ORTE:
         last = {}
         for p in pts:
-            if _trifft(ortname, ola, olo, p["lat"], p["lon"]):
+            if _trifft(ortname, ola, olo, p["lat"], p["lon"], p["alt"]):
                 prev = last.get(p["id"])
                 if prev is None or p["t"] - prev > DEBOUNCE:
                     events[ortname].append(p)

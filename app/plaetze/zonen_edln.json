@@ -3,7 +3,7 @@
  "hinweis": "Ortsumrisse aus OpenStreetMap, Lizenz ODbL, (c) OpenStreetMap-Mitwirkende. Jede bebaute Flaeche ist der naechstgelegenen Ortslage zugeordnet, daher ueberschneidungsfrei.",
  "erstellt": "2026-10-09",
  "orte": {
-  "Willich-Schiefbahn/Unterbruch": {
+  "Schiefbahn-Unterbruch": {
    "lat": 51.2371,
    "lon": 6.55033,
    "osm_punkt": [
@@ -365,7 +365,7 @@
     ]
    ]
   },
-  "Willich-Schiefbahn (Ort)": {
+  "Willich-Schiefbahn": {
    "lat": 51.24366,
    "lon": 6.52923,
    "osm_punkt": [
@@ -3577,7 +3577,7 @@
     ]
    ]
   },
-  "MG-Uedding/Damm": {
+  "MG-Damm/Uedding": {
    "lat": 51.2313,
    "lon": 6.47971,
    "osm_punkt": [

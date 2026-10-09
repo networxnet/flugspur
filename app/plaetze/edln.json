@@ -22,12 +22,12 @@
   ],
   "orte": [
     {
-      "name": "Willich-Schiefbahn/Unterbruch",
+      "name": "Schiefbahn-Unterbruch",
       "lat": 51.2371,
       "lon": 6.55033
     },
     {
-      "name": "Willich-Schiefbahn (Ort)",
+      "name": "Willich-Schiefbahn",
       "lat": 51.24366,
       "lon": 6.52923
     },
@@ -42,7 +42,7 @@
       "lon": 6.46764
     },
     {
-      "name": "MG-Uedding/Damm",
+      "name": "MG-Damm/Uedding",
       "lat": 51.2313,
       "lon": 6.47971
     },
@@ -62,5 +62,6 @@
       "lon": 6.59608
     }
   ],
-  "hinweis": "Keine Transponderpflicht, keine Laermmessstellen, kein oeffentliches Flugspurportal. Eigener Mitschnitt ist hier die einzige Datenquelle. Platzrunden sind nur Empfehlung des Laermschutzbeirats."
+  "hinweis": "Keine Transponderpflicht, keine Laermmessstellen, kein oeffentliches Flugspurportal. Eigener Mitschnitt ist hier die einzige Datenquelle. Platzrunden sind nur Empfehlung des Laermschutzbeirats.",
+  "laerm_schraeg_m": 1500
 }
