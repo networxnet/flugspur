@@ -205,15 +205,19 @@ def seite():
     tage = verfuegbare_tage()
     heut = heute()
     gestern = (datetime.fromtimestamp(time.time() - 86400)).strftime("%Y-%m-%d")
+    def gruppe(beschriftung, ziel):
+        return (f'<span class=gr><span class=gl>{beschriftung}</span>'
+                f'<a class=btn href="/karte?tag={ziel}">'
+                f'<span class=ic>&#9992;</span>Karte</a>'
+                f'<a class=btn2 href="/text?tag={ziel}">'
+                f'<span class=ic>&#9776;</span>Text</a></span>')
+
     knopf = []
     for bez, t in [("heute", heut), ("gestern", gestern)]:
         if t in tage:
-            knopf.append(f'<a class=btn href="/karte?tag={t}">Karte {bez}</a>'
-                         f'<a class=btn2 href="/text?tag={t}">Text {bez}</a>')
+            knopf.append(gruppe(bez, t))
     if len(tage) > 1:
-        knopf.append(f'<a class=btn href="/karte?tag=alle">Karte alle '
-                     f'{len(tage)} Tage</a>'
-                     f'<a class=btn2 href="/text?tag=alle">Text alle</a>')
+        knopf.append(gruppe(f"alle {len(tage)} Tage", "alle"))
     knoepfe = ("".join(knopf) if knopf
                else '<span style="color:#777;font-size:13px">Noch keine '
                     'abgeschlossene Tagesdatei vorhanden.</span>')
@@ -245,6 +249,22 @@ tr:last-child td{{border-bottom:none}}
 code{{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}}
 .p{{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px}}
 .z{{display:flex;gap:22px;padding:11px 15px;font-size:13px;flex-wrap:wrap}}
+.aw{{display:flex;flex-wrap:wrap;gap:9px;padding:13px 15px}}
+a.btn,a.btn2{{display:inline-flex;align-items:center;gap:7px;
+ text-decoration:none;padding:9px 15px;border-radius:8px;font-size:13px;
+ font-weight:500;line-height:1;border:1px solid transparent;
+ transition:background .12s,border-color .12s}}
+a.btn{{background:#1b2430;color:#fff}}
+a.btn:hover{{background:#2c3a4d}}
+a.btn2{{background:#fff;color:#33404f;border-color:#d4dce6}}
+a.btn2:hover{{background:#f1f5f9;border-color:#b9c6d4}}
+a.btn .ic,a.btn2 .ic{{font-size:14px;opacity:.85}}
+.gr{{display:flex;align-items:center;gap:0;border-radius:8px;overflow:hidden;
+ border:1px solid #d4dce6;background:#fff}}
+.gr a{{border:0;border-radius:0;margin:0}}
+.gr a+a{{border-left:1px solid #e3eaf1}}
+.gl{{font-size:11px;text-transform:uppercase;letter-spacing:.04em;
+ color:#7a8694;font-weight:600;padding:0 11px}}
 .f{{text-align:center;color:#8a929c;font-size:11px;margin-top:8px}}
 </style></head><body><div class=w>
 
@@ -268,8 +288,8 @@ code{{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}}
 </div>
 
 <div class=box><h2>Auswertung erzeugen</h2>
-<div style="padding:12px 15px">{knoepfe}
-<div style="font-size:12px;color:#667;margin-top:9px">Die Karte wird beim
+<div class=aw>{knoepfe}</div>
+<div style="font-size:12px;color:#667;padding:0 15px 13px">Die Karte wird beim
 Anklicken frisch aus den Mitschnitten berechnet — je nach Datenmenge
 dauert das einige Sekunden. Sie öffnet sich in diesem Fenster; mit dem
 Zurück-Knopf des Browsers kommen Sie hierher zurück.</div></div></div>

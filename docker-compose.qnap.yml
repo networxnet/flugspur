@@ -27,8 +27,8 @@ services:
       TRACKER_INTERVAL_S: "5"
       TRACKER_DATA_DIR: "/data"
     volumes:
-      - /share/CACHEDEV1_DATA/Container/flugspur/app:/app:ro
-      - /share/CACHEDEV1_DATA/Container/flugspur/data:/data
+      - ${FS_APP_PFAD:-/share/CACHEDEV1_DATA/Container/flugspur/app}:/app:ro
+      - ${FS_DATA_PFAD:-/share/CACHEDEV1_DATA/Container/flugspur/data}:/data
     healthcheck:
       test: ["CMD-SHELL", "python3 -c \"import time,sys;t=int(open('/data/_heartbeat_adsb.txt').readline());sys.exit(0 if time.time()-t<180 else 1)\""]
       interval: 60s
@@ -49,8 +49,8 @@ services:
       TRACKER_RADIUS_NM: "15"
       TRACKER_DATA_DIR: "/data"
     volumes:
-      - /share/CACHEDEV1_DATA/Container/flugspur/app:/app:ro
-      - /share/CACHEDEV1_DATA/Container/flugspur/data:/data
+      - ${FS_APP_PFAD:-/share/CACHEDEV1_DATA/Container/flugspur/app}:/app:ro
+      - ${FS_DATA_PFAD:-/share/CACHEDEV1_DATA/Container/flugspur/data}:/data
 
   summary:
     image: python:3.12-slim
@@ -67,8 +67,8 @@ services:
       TRACKER_LOW_FT: "2500"
       TRACKER_VIEW_KM: "11"
     volumes:
-      - /share/CACHEDEV1_DATA/Container/flugspur/app:/app:ro
-      - /share/CACHEDEV1_DATA/Container/flugspur/data:/data
+      - ${FS_APP_PFAD:-/share/CACHEDEV1_DATA/Container/flugspur/app}:/app:ro
+      - ${FS_DATA_PFAD:-/share/CACHEDEV1_DATA/Container/flugspur/data}:/data
 
   # 4) Live-Monitor im Browser:  http://<NAS-Adresse>:8099
   monitor:
@@ -86,5 +86,5 @@ services:
       TRACKER_DATA_DIR: "/data"
       TRACKER_MONITOR_PORT: "${FS_MONITOR_PORT:-8099}"
     volumes:
-      - /share/CACHEDEV1_DATA/Container/flugspur/app:/app:ro
-      - /share/CACHEDEV1_DATA/Container/flugspur/data:/data:ro
+      - ${FS_APP_PFAD:-/share/CACHEDEV1_DATA/Container/flugspur/app}:/app:ro
+      - ${FS_DATA_PFAD:-/share/CACHEDEV1_DATA/Container/flugspur/data}:/data:ro

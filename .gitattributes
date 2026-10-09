@@ -1,0 +1,6 @@
+# Zeilenenden immer als LF ablegen und auschecken.
+# Sonst macht Windows beim Klonen auf den NAS-Share CRLF daraus.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.pdf binary
