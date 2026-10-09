@@ -23,43 +23,43 @@
   "orte": [
     {
       "name": "Willich-Schiefbahn/Unterbruch",
-      "lat": 51.262,
-      "lon": 6.539
+      "lat": 51.2371,
+      "lon": 6.55033
     },
     {
       "name": "Willich-Schiefbahn (Ort)",
-      "lat": 51.269,
-      "lon": 6.51
+      "lat": 51.24366,
+      "lon": 6.52923
     },
     {
       "name": "Willich-Neersen",
-      "lat": 51.256,
-      "lon": 6.478
+      "lat": 51.25362,
+      "lon": 6.47906
     },
     {
       "name": "MG-Neuwerk",
-      "lat": 51.205,
-      "lon": 6.478
+      "lat": 51.2151,
+      "lon": 6.46764
     },
     {
       "name": "MG-Uedding/Damm",
-      "lat": 51.215,
-      "lon": 6.525
+      "lat": 51.2313,
+      "lon": 6.47971
     },
     {
       "name": "Korschenbroich-Herrenshoff",
-      "lat": 51.193,
-      "lon": 6.548
+      "lat": 51.20768,
+      "lon": 6.50818
     },
     {
       "name": "Korschenbroich-Raderbroich",
-      "lat": 51.216,
-      "lon": 6.573
+      "lat": 51.20375,
+      "lon": 6.53157
     },
     {
       "name": "Kaarst-Vorst",
-      "lat": 51.243,
-      "lon": 6.58
+      "lat": 51.21583,
+      "lon": 6.59608
     }
   ],
   "hinweis": "Keine Transponderpflicht, keine Laermmessstellen, kein oeffentliches Flugspurportal. Eigener Mitschnitt ist hier die einzige Datenquelle. Platzrunden sind nur Empfehlung des Laermschutzbeirats."

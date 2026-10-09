@@ -128,3 +128,61 @@ if __name__ == "__main__":
         print(f"      {n:34s} {la:.4f},{lo:.4f}  {hav_km(pr['lat'],pr['lon'],la,lo):5.1f} km")
     if pr.get("hinweis"):
         print(f"\n  Hinweis: {pr['hinweis']}")
+
+
+# ---------------------------------------------------------------- Zonen
+
+def _zonendatei(code):
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        "plaetze", f"zonen_{code.lower()}.json")
+
+
+def lade_zonen(P):
+    """Echte Ortsumrisse aus OpenStreetMap, falls vorhanden.
+
+    Liefert {Ortsname: [Ring, ...]} mit Ring = [(lat, lon), ...].
+    Fehlt die Datei, bleibt es beim Kreis um den Profilpunkt."""
+    pfad = _zonendatei(P["code"])
+    if not os.path.exists(pfad):
+        return {}
+    try:
+        with open(pfad, encoding="utf-8") as f:
+            d = json.load(f)
+    except Exception:
+        return {}
+    raus = {}
+    for name, e in d.get("orte", {}).items():
+        ringe = [[(a, b) for a, b in r] for r in e.get("ringe", [])]
+        if ringe:
+            raus[name] = ringe
+    return raus
+
+
+def im_polygon(lat, lon, ring):
+    """Strahlenverfahren: liegt der Punkt innerhalb des Polygonzugs?"""
+    drin = False
+    n = len(ring)
+    j = n - 1
+    for i in range(n):
+        yi, xi = ring[i]
+        yj, xj = ring[j]
+        if (yi > lat) != (yj > lat):
+            schnitt = (xj - xi) * (lat - yi) / (yj - yi) + xi
+            if lon < schnitt:
+                drin = not drin
+        j = i
+    return drin
+
+
+def in_zone(lat, lon, ringe):
+    for r in ringe:
+        if im_polygon(lat, lon, r):
+            return True
+    return False
+
+
+def zonen_umgriff(ringe):
+    """Grobes Rechteck um alle Ringe -- spart Rechenzeit bei vielen Punkten."""
+    la = [p[0] for r in ringe for p in r]
+    lo = [p[1] for r in ringe for p in r]
+    return min(la), min(lo), max(la), max(lo)

@@ -24,6 +24,7 @@ DATA = profil._env("DATA_DIR") or "/data"
 PORT = int(profil._env("MONITOR_PORT") or 8099)
 LOW_FT = P["low_ft"]
 OVER_KM = P["overflight_km"]
+ZONEN = profil.lade_zonen(P)
 
 def _ogn_id(r):
     k = r.get("icao")
@@ -134,7 +135,9 @@ def zustand():
     for name, ola, olo in P["orte"]:
         zuletzt = {}
         for p in pts:
-            if profil.hav_km(ola, olo, p["lat"], p["lon"]) <= OVER_KM:
+            if (profil.in_zone(p["lat"], p["lon"], ZONEN[name])
+                    if name in ZONEN
+                    else profil.hav_km(ola, olo, p["lat"], p["lon"]) <= OVER_KM):
                 v = zuletzt.get(p["id"])
                 if v is None or p["t"] - v > 180:
                     ueber[name][1] += 1
@@ -299,7 +302,8 @@ Zurück-Knopf des Browsers kommen Sie hierher zurück.</div></div></div>
 <th>km</th><th>Quelle</th><th>zuletzt</th></tr>
 {''.join(reihen)}</table></div>
 
-<div class=box><h2>Überflüge heute &middot; {OVER_KM:g} km Umkreis</h2>
+<div class=box><h2>Überflüge heute &middot; {"bebaute Ortsfläche" if ZONEN
+  else f"{OVER_KM:g} km Umkreis"}</h2>
 <table>{orte}</table>
 <div style="padding:9px 15px;font-size:12px;color:#667;border-top:1px solid #eef2f6">
 <b>tief</b> = Durchgang in höchstens {LOW_FT:.0f} ft, lärmrelevant &middot;

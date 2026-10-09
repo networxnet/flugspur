@@ -16,6 +16,14 @@ LAT      = _P["lat"]
 LON      = _P["lon"]
 DATA_DIR = profil._env("DATA_DIR") or "/data"
 OVER_KM  = _P["overflight_km"]
+ZONEN    = profil.lade_zonen(_P)
+
+def _trifft(name, ola, olo, lat, lon):
+    """Ueberflug: innerhalb der Ortsflaeche, sonst ersatzweise im Umkreis."""
+    ringe = ZONEN.get(name)
+    if ringe:
+        return profil.in_zone(lat, lon, ringe)
+    return hav_km(ola, olo, lat, lon) <= OVER_KM
 LOW_FT   = _P["low_ft"]
 RUNWAYS  = _P["runways"]
 PLATZRUNDE = _P["platzrunde"]
@@ -177,14 +185,15 @@ def report(day):
 
     # --- Ueberflugereignisse ---
     print(f"\nUeberflug-Ereignisse je Ortslage "
-          f"(Radius {OVER_KM} km, ein Ereignis je Luftfahrzeug und Durchgang).")
+          f"({'echte Ortsflaeche aus OpenStreetMap' if ZONEN else f'Radius {OVER_KM} km'}, "
+          f"ein Ereignis je Luftfahrzeug und Durchgang).")
     print(f"  'tief' = hoechstens {LOW_FT:.0f} ft, laermrelevant. 'gesamt' = alle "
           f"Hoehen,\n  enthaelt auch hohen Durchgangsverkehr Richtung Duesseldorf.")
     events = defaultdict(list)
     for ortname, ola, olo in ORTE:
         last = {}
         for p in pts:
-            if hav_km(ola, olo, p["lat"], p["lon"]) <= OVER_KM:
+            if _trifft(ortname, ola, olo, p["lat"], p["lon"]):
                 prev = last.get(p["id"])
                 if prev is None or p["t"] - prev > DEBOUNCE:
                     events[ortname].append(p)

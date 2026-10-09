@@ -22,6 +22,18 @@ LON      = _P["lon"]
 DATA_DIR = profil._env("DATA_DIR") or "/data"
 OUT_DIR  = profil._env("OUT_DIR") or DATA_DIR
 OVER_KM  = _P["overflight_km"]
+ZONEN    = profil.lade_zonen(_P)
+def _grundkarte():
+    pf = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                      "plaetze", f"grundkarte_{_P['code'].lower()}.json")
+    if not os.path.exists(pf):
+        return None
+    try:
+        with open(pf, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return None
+GRUND = _grundkarte()
 LOW_FT   = _P["low_ft"]
 VIEW_KM  = _P["view_km"]
 RUNWAYS  = _P["runways"]
@@ -116,6 +128,89 @@ def load(days):
 
 SZ = 900          # Kantenlaenge der Karte in px
 
+
+def grundkarte_svg():
+    """Eingebettete OSM-Kacheln als Kartenhintergrund."""
+    if not GRUND:
+        return []
+    out = ['<g opacity="0.62">']
+    for k in GRUND["kacheln"]:
+        x1, y1 = proj(k["n"], k["w"])
+        x2, y2 = proj(k["s"], k["e"])
+        out.append(f'<image x="{x1:.2f}" y="{y1:.2f}" '
+                   f'width="{x2-x1:.2f}" height="{y2-y1:.2f}" '
+                   f'preserveAspectRatio="none" '
+                   f'href="data:image/png;base64,{k["b64"]}"/>')
+    out.append('</g>')
+    out.append(f'<rect x="0" y="0" width="{SZ}" height="{SZ}" '
+               f'fill="#ffffff" opacity="0.18"/>')
+    return out
+
+
+def zonen_svg(mit_namen=True):
+    """Ortslagen als Flaechen mit Umrandung statt als Kreise."""
+    out = []
+    for name, _, _ in ORTE:
+        ringe = ZONEN.get(name)
+        if not ringe:
+            continue
+        for r in ringe:
+            d = " ".join(("M" if i == 0 else "L") +
+                         f"{proj(a, b)[0]:.1f},{proj(a, b)[1]:.1f}"
+                         for i, (a, b) in enumerate(r)) + " Z"
+            out.append(f'<path d="{d}" fill="#c2185b" fill-opacity="0.13" '
+                       f'stroke="#ad1457" stroke-width="1.6" '
+                       f'stroke-linejoin="round"/>')
+    if mit_namen:
+        for name, la, lo in ORTE:
+            if name not in ZONEN:
+                continue
+            x, y = proj(la, lo)
+            if not (0 <= x <= SZ and 0 <= y <= SZ):
+                continue
+            kurz = name.split("/")[0]
+            out.append(f'<text x="{x:.1f}" y="{y:.1f}" font-size="12" '
+                       f'font-weight="600" text-anchor="middle" fill="#7b1140" '
+                       f'stroke="#ffffff" stroke-width="3.2" paint-order="stroke" '
+                       f'>{esc(kurz)}</text>')
+    return out
+
+
+def nordpfeil_svg():
+    """Nordpfeil und Massstab -- damit die Ausrichtung sichtbar belegt ist."""
+    out = []
+    # Nordpfeil oben rechts
+    bx, by = SZ - 52, 20
+    out.append(f'<g><rect x="{bx-20}" y="{by-6}" width="46" height="74" rx="7" '
+               f'fill="#ffffff" fill-opacity="0.85" stroke="#c9d3dd"/>'
+               f'<polygon points="{bx+3},{by+2} {bx+12},{by+40} {bx+3},{by+33} '
+               f'{bx-6},{by+40}" fill="#1b2430"/>'
+               f'<text x="{bx+3}" y="{by+60}" font-size="14" font-weight="700" '
+               f'text-anchor="middle" fill="#1b2430">N</text></g>')
+    # Massstabsbalken unten links
+    for km in (5, 2, 1):
+        laenge = km / VIEW_KM * (SZ / 2)
+        if laenge <= SZ * 0.33:
+            break
+    x0, y0 = 24, SZ - 28
+    out.append(f'<g><rect x="{x0-7}" y="{y0-21}" width="{laenge+56}" height="32" '
+               f'rx="6" fill="#ffffff" fill-opacity="0.85" stroke="#c9d3dd"/>'
+               f'<line x1="{x0}" y1="{y0}" x2="{x0+laenge}" y2="{y0}" '
+               f'stroke="#1b2430" stroke-width="3"/>'
+               f'<line x1="{x0}" y1="{y0-5}" x2="{x0}" y2="{y0+5}" '
+               f'stroke="#1b2430" stroke-width="3"/>'
+               f'<line x1="{x0+laenge}" y1="{y0-5}" x2="{x0+laenge}" y2="{y0+5}" '
+               f'stroke="#1b2430" stroke-width="3"/>'
+               f'<text x="{x0+laenge+10}" y="{y0+4}" font-size="12" '
+               f'font-weight="600" fill="#1b2430">{km} km</text></g>')
+    if GRUND:
+        out.append(f'<text x="{SZ-6}" y="{SZ-6}" font-size="10" '
+                   f'text-anchor="end" fill="#44505e" stroke="#ffffff" '
+                   f'stroke-width="2.6" paint-order="stroke">'
+                   f'Kartengrundlage \u00a9 OpenStreetMap-Mitwirkende (ODbL)</text>')
+    return out
+
+
 def proj(lat, lon):
     x = SZ/2 + (lon - LON) * KM_LON / VIEW_KM * (SZ/2)
     y = SZ/2 - (lat - LAT) * KM_LAT / VIEW_KM * (SZ/2)
@@ -129,6 +224,8 @@ def esc(s):
 def karte(pts):
     s = [f'<svg viewBox="0 0 {SZ} {SZ}" xmlns="http://www.w3.org/2000/svg" '
          f'style="width:100%;height:auto;background:#f7f9fb;border:1px solid #ccd">']
+    s += grundkarte_svg()
+    s += zonen_svg()
 
     # Entfernungsringe
     for km in (2, 4, 6, 8, 10):
@@ -165,8 +262,10 @@ def karte(pts):
             prev_t = p["t"]
         _draw_seg(s, seg)
 
-    # Ortslagen
+    # Ortslagen: Zonen sind schon gezeichnet, hier nur die ohne Umriss
     for name, ola, olo in ORTE:
+        if name in ZONEN:
+            continue
         x, y = proj(ola, olo)
         if not (0 <= x <= SZ and 0 <= y <= SZ):
             continue
@@ -185,6 +284,7 @@ def karte(pts):
              f'stroke="#333" stroke-width="2"/>'
              f'<polygon points="0,-20 -5,-8 5,-8" fill="#333"/>'
              f'<text x="0" y="34" font-size="12" fill="#333" text-anchor="middle">N</text></g>')
+    s += nordpfeil_svg()
     s.append('</svg>')
     return "\n".join(s)
 
@@ -236,16 +336,25 @@ def heatmap(pts):
         r = int(255 - 180*f); g = int(240 - 215*f); b = int(245 - 185*f)
         s.append(f'<rect x="{gx*cs:.1f}" y="{gy*cs:.1f}" width="{cs:.1f}" '
                  f'height="{cs:.1f}" fill="rgb({r},{g},{b})" fill-opacity="0.92"/>')
+    for name, _, _ in ORTE:
+        for r in ZONEN.get(name, []):
+            d = " ".join(("M" if i == 0 else "L") +
+                         f"{proj(a, b)[0]:.1f},{proj(a, b)[1]:.1f}"
+                         for i, (a, b) in enumerate(r)) + " Z"
+            s.append(f'<path d="{d}" fill="none" stroke="#111" '
+                     f'stroke-width="1.3" stroke-opacity="0.75"/>')
     for name, ola, olo in ORTE:
         x, y = proj(ola, olo)
         if 0 <= x <= SZ and 0 <= y <= SZ:
-            s.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="3.5" fill="#000"/>')
+            if name not in ZONEN:
+                s.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="3.5" fill="#000"/>')
             s.append(f'<text x="{x:.1f}" y="{y-9:.1f}" font-size="12" font-weight="600" '
                      f'fill="#000" text-anchor="middle" '
                      f'style="paint-order:stroke;stroke:#fff;stroke-width:3px">'
                      f'{esc(name)}</text>')
     x1, y1 = proj(LAT, LON)
     s.append(f'<circle cx="{x1:.1f}" cy="{y1:.1f}" r="5" fill="none" stroke="#000" stroke-width="2"/>')
+    s += nordpfeil_svg()
     s.append('</svg>')
     return "\n".join(s), mx
 
@@ -277,8 +386,10 @@ def ueberfluege(pts):
     res = {}
     for name, ola, olo in ORTE:
         last, ev = {}, []
+        ringe = ZONEN.get(name)
         for p in pts:
-            if hav_km(ola, olo, p["lat"], p["lon"]) <= OVER_KM:
+            if (profil.in_zone(p["lat"], p["lon"], ringe) if ringe
+                    else hav_km(ola, olo, p["lat"], p["lon"]) <= OVER_KM):
                 prev = last.get(p["id"])
                 if prev is None or p["t"] - prev > DEBOUNCE:
                     ev.append(p)
@@ -382,7 +493,8 @@ empfangbar sind. Es wurde nichts geschätzt, modelliert oder hochgerechnet.</div
 <h2>1. Wo wurde geflogen?</h2>
 <p>Jede Linie ist der tatsächliche Weg eines Flugzeugs. Die Farbe zeigt die Höhe
 über Grund — <b>je röter, desto tiefer und damit lauter am Boden</b>. Die
-gestrichelten Kreise markieren die Ortslagen mit {OVER_KM:g} km Radius.</p>
+farbigen Flächen sind die tatsächlich bebauten Ortslagen laut
+OpenStreetMap. Norden ist oben, der Maßstab steht unten links.</p>
 <p>{legende}</p>
 {karte(pts)}
 
@@ -396,7 +508,7 @@ empfohlene Platzrunde hält oder eigene Wege nimmt.</p>
 500 × 500 Metern.</p>
 
 <h2>3. Welcher Ort ist wie stark betroffen?</h2>
-<p>Gezählt wird jeder Durchgang eines Flugzeugs im {OVER_KM:g}-km-Umkreis.
+<p>Gezählt wird jeder Durchgang eines Flugzeugs über der bebauten Fläche.
 Eine kreisende Maschine zählt pro Runde einmal — nicht pro Sekunde.</p>
 {bars(orte_rows, color="#c0392b")}
 

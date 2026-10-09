@@ -45,7 +45,35 @@ Nichts wird überschrieben — bereits geschriebene Tage bleiben unangetastet.
 
 ---
 
-## 1. Luftfahrzeugkennzeichen statt Hexcode
+## 1. Kartenhintergrund und Ortszonen
+
+Die Karte zeigt eine OpenStreetMap-Grundlage, **Nordpfeil oben rechts**
+und einen **Maßstabsbalken unten links**. Die Ortslagen sind keine Kreise
+mehr, sondern die tatsächlich bebauten Flächen laut OpenStreetMap.
+
+Ein Überflug zählt damit, wenn das Luftfahrzeug **über bebautem Gebiet**
+war — nicht mehr, wenn es irgendwo in einem 1,5-km-Kreis um einen Punkt
+flog. Das ist genauer und leichter zu verteidigen.
+
+Beides wird einmalig geholt und liegt danach im Profil:
+
+```sh
+python3 /app/zonen_holen.py       Ortsumrisse aus OpenStreetMap
+python3 /app/grundkarte.py        Kartenkacheln einbetten
+```
+
+Danach arbeitet alles offline weiter. Die Auswertung wächst dadurch von
+etwa 15 kB auf rund 0,7 MB je Datei — der Preis dafür, dass sie auch in
+fünf Jahren noch dieselbe Karte zeigt, ohne Internet.
+
+**Für einen neuen Flugplatz** beide Befehle einmal ausführen, siehe
+`doku/NEUER_FLUGPLATZ.md`.
+
+Kartengrundlage und Ortsumrisse: © OpenStreetMap-Mitwirkende, Lizenz ODbL.
+
+---
+
+## 2. Luftfahrzeugkennzeichen statt Hexcode
 
 Angezeigt wird das Kennzeichen (`D-EOQL`), darunter klein der technische
 Hexcode (`3d2b4b`). Der Hexcode bleibt sichtbar, weil er die eindeutige
