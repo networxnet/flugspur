@@ -55,52 +55,76 @@ def namen():
     return _NAMEN["obj"]
 
 def lies(tag):
-    """Liest den Tag und liefert vereinheitlichte Punkte (mit Zwischenspeicher)."""
-    sig = tuple((os.path.getmtime(f), os.path.getsize(f))
-                for f in sorted(glob.glob(os.path.join(DATA, f"*_{tag}.ndjson"))))
-    if _CACHE.get("sig") == sig:
-        return _CACHE["pts"]
-    pts = []
+    """Liest den Tag und liefert vereinheitlichte Punkte.
+
+    Die Logger haengen laufend an. Frueher wurde deshalb bei jedem
+    Seitenaufruf die komplette Tagesdatei neu eingelesen -- gegen Abend
+    dauerte das spuerbar lange. Jetzt wird je Datei die zuletzt gelesene
+    Byteposition gemerkt und nur der neue Teil verarbeitet.
+    """
+    if _CACHE.get("tag") != tag:
+        _CACHE.clear()
+        _CACHE.update({"tag": tag, "offs": {}, "pts": []})
+    pts = _CACHE["pts"]
+    neu = 0
+    N = namen()
     for art, pfad in (("ADSB", os.path.join(DATA, f"adsb_{tag}.ndjson")),
                       ("OGN",  os.path.join(DATA, f"ogn_{tag}.ndjson"))):
         if not os.path.exists(pfad):
             continue
-        with open(pfad, encoding="utf-8", errors="replace") as f:
-            for z in f:
-                z = z.strip()
-                if not z:
-                    continue
-                try:
-                    r = json.loads(z)
-                except json.JSONDecodeError:
-                    continue
-                N = namen()
-                if art == "OGN":
-                    pts.append({"t": r.get("ts"), "id": _ogn_id(r), "q": "OGN",
-                                "lat": r.get("lat"), "lon": r.get("lon"),
-                                "alt": r.get("alt_ft"),
-                                "desc": N.muster(hexid=r.get("icao"),
-                                                 ogn_id=r.get("id"),
-                                                 desc=r.get("typ")),
-                                                 "muster": r.get("typ"),
-                                "kz": N.anzeige(hexid=r.get("icao"),
-                                                ogn_id=r.get("id"),
-                                                reg=r.get("reg")),
-                                "kt": r.get("kt")})
-                else:
-                    N.lerne(r.get("icao"), r.get("reg"),
-                            r.get("type"), r.get("desc"))
-                    pts.append({"t": r.get("t"), "id": r.get("icao"), "q": "ADSB",
-                                "lat": r.get("lat"), "lon": r.get("lon"),
-                                "alt": r.get("alt_ft"),
-                                "desc": r.get("desc") or r.get("type"),
-                                "muster": r.get("type"),
-                                "kz": N.anzeige(hexid=r.get("icao"),
-                                                reg=r.get("reg")),
-                                "kt": r.get("gs_kt")})
-    pts = [p for p in pts if p["t"] and p["id"] and p["lat"] is not None]
-    pts.sort(key=lambda p: p["t"])
-    _CACHE["sig"], _CACHE["pts"] = sig, pts
+        groesse = os.path.getsize(pfad)
+        off = _CACHE["offs"].get(pfad, 0)
+        if groesse < off:          # Datei wurde ersetzt oder gekuerzt
+            off = 0
+            _CACHE["pts"] = pts = []
+            _CACHE["offs"] = {}
+        if groesse == off:
+            continue
+        with open(pfad, "rb") as fb:
+            fb.seek(off)
+            roh = fb.read()
+        # angebrochene letzte Zeile nicht verbrauchen
+        schnitt = roh.rfind(b"\n")
+        if schnitt < 0:
+            continue
+        _CACHE["offs"][pfad] = off + schnitt + 1
+        for z in roh[:schnitt].decode("utf-8", "replace").splitlines():
+            z = z.strip()
+            if not z:
+                continue
+            try:
+                r = json.loads(z)
+            except json.JSONDecodeError:
+                continue
+            neu += 1
+            if art == "OGN":
+                pts.append({"t": r.get("ts"), "id": _ogn_id(r), "q": "OGN",
+                            "lat": r.get("lat"), "lon": r.get("lon"),
+                            "alt": r.get("alt_ft"),
+                            "desc": N.muster(hexid=r.get("icao"),
+                                             ogn_id=r.get("id"),
+                                             desc=r.get("typ")),
+                                             "muster": r.get("typ"),
+                            "kz": N.anzeige(hexid=r.get("icao"),
+                                            ogn_id=r.get("id"),
+                                            reg=r.get("reg")),
+                            "kt": r.get("kt")})
+            else:
+                N.lerne(r.get("icao"), r.get("reg"),
+                        r.get("type"), r.get("desc"))
+                pts.append({"t": r.get("t"), "id": r.get("icao"), "q": "ADSB",
+                            "lat": r.get("lat"), "lon": r.get("lon"),
+                            "alt": r.get("alt_ft"),
+                            "desc": r.get("desc") or r.get("type"),
+                            "muster": r.get("type"),
+                            "kz": N.anzeige(hexid=r.get("icao"),
+                                            reg=r.get("reg")),
+                            "kt": r.get("gs_kt")})
+    if neu:
+        _CACHE["pts"] = pts = sorted(
+            (p for p in pts if p["t"] and p["id"] and p["lat"] is not None),
+            key=lambda p: p["t"])
+    _CACHE["neu"] = neu
     return pts
 
 def herzschlag(name):
@@ -147,9 +171,19 @@ def zustand():
     for name, ola, olo in P["orte"]:
         feld = FELDER.get(name)
         laufend = {}
+        grenze = feld.MAX_M if feld else None
         for p in pts:
-            s_m = (feld.schraeg_m(p["lat"], p["lon"], p["alt"]) if feld
-                   else profil.hav_km(ola, olo, p["lat"], p["lon"]) * 1000.0)
+            if feld:
+                # erst die billige seitliche Abfrage; liegt der Punkt schon
+                # seitlich ausserhalb des Feldes, kann kein Ereignis mehr
+                # entstehen -- das spart die Pegelrechnung fuer die grosse
+                # Mehrheit der Meldungen
+                seit = feld.seitlich_m(p["lat"], p["lon"])
+                if seit >= grenze:
+                    continue
+                s_m = feld.schraeg_m(p["lat"], p["lon"], p["alt"])
+            else:
+                s_m = profil.hav_km(ola, olo, p["lat"], p["lon"]) * 1000.0
             db = laerm.pegel_db(grp_je_ac.get(p["id"], "?"), s_m)
             if db < S55:
                 continue
@@ -344,6 +378,43 @@ Alle Zahlen sind Untergrenzen.</div>
 ARBEIT = tempfile.mkdtemp(prefix="flugspur-")
 _LAUF = {}          # merkt sich laufende Auswertungen
 
+def zeiten_messen():
+    """Misst, wo die Zeit beim Seitenaufbau bleibt.
+
+    Dient der Fehlersuche, wenn die Seite langsam wird. Aufruf: /zeiten
+    """
+    import io
+    aus = io.StringIO()
+    tag = heute()
+    def takt(was, fn):
+        t = time.time()
+        erg = fn()
+        print(f"{(time.time()-t)*1000:9.0f} ms   {was}", file=aus)
+        return erg
+
+    print("Zeitmessung Monitor\n", file=aus)
+    dateien = sorted(glob.glob(os.path.join(DATA, f"*_{tag}.ndjson")))
+    for f in dateien:
+        print(f"{'':12s}   Datei {os.path.basename(f)}: "
+              f"{os.path.getsize(f)/1e6:.1f} MB", file=aus)
+    alle = glob.glob(os.path.join(DATA, "*.ndjson"))
+    print(f"{'':12s}   {len(alle)} Dateien gesamt, "
+          f"{sum(os.path.getsize(f) for f in alle)/1e6:.1f} MB\n", file=aus)
+
+    _CACHE.clear()
+    pts = takt("lies() kalt (gesamte Tagesdatei)", lambda: lies(tag))
+    print(f"{'':12s}   {len(pts)} Punkte im Speicher\n", file=aus)
+    takt("lies() warm (nur neue Zeilen)", lambda: lies(tag))
+    takt("namen() (Kennzeichen-Datenbank)",
+         lambda: kennzeichen.Namen(DATA))
+    takt("zustand() (inkl. Zonen und Pegel)", zustand)
+    takt("zustand() erneut", zustand)
+    takt("seite() vollstaendig", seite)
+    print(f"\n{'':12s}   {len(FELDER)} Zonenfelder geladen", file=aus)
+    print(f"{'':12s}   Python {sys.version.split()[0]}", file=aus)
+    return aus.getvalue()
+
+
 def verfuegbare_tage():
     t = set()
     for f in glob.glob(os.path.join(DATA, "*_????-??-??.ndjson")):
@@ -385,6 +456,13 @@ class H(BaseHTTPRequestHandler):
         if self.path.startswith("/healthz"):
             self.send_response(200); self.send_header("Content-Type","text/plain")
             self.end_headers(); self.wfile.write(b"ok"); return
+        if self.path.startswith("/zeiten"):
+            txt = zeiten_messen()
+            roh = txt.encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain; charset=utf-8")
+            self.send_header("Content-Length", str(len(roh)))
+            self.end_headers(); self.wfile.write(roh); return
         weg = urlparse(self.path)
         frage = parse_qs(weg.query)
         tag = (frage.get("tag") or [None])[0]

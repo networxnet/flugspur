@@ -126,3 +126,26 @@ Oder noch einfacher, einzeln eingeben:
 ```sh
 cat /data/_heartbeat_adsb.txt
 ```
+
+
+## Die Seite laedt langsam
+
+Zuerst messen, nicht raten. Der Monitor hat dafuer eine eigene Seite:
+
+    http://<nas>:8077/zeiten
+
+Sie gibt aus, wie lange jeder Schritt dauert, wie gross die Tagesdatei ist
+und wie viele Punkte im Speicher liegen. Typische Befunde:
+
+* **`lies() kalt` dauert lange, `lies() warm` ist schnell.**
+  Das ist normal. Nach einem Neustart muss die Tagesdatei einmal
+  vollstaendig gelesen werden; danach wird nur noch der neu angehaengte
+  Teil verarbeitet. Nur der erste Aufruf nach dem Start ist langsam.
+* **`zustand()` dauert lange.** Dann kostet die Pegelrechnung ueber die
+  Zonen zu viel. Abhilfe: weniger Ortslagen im Profil, oder `laerm_schraeg_m`
+  und damit das Entfernungsfeld kleiner setzen.
+* **`namen()` dauert lange.** Die Kennzeichendatenbank `_ddb.json` liegt
+  auf langsamem Speicher. Sie wird hoechstens alle fuenf Minuten neu
+  gelesen.
+* **Alles ist schnell, die Seite trotzdem langsam.** Dann liegt es nicht am
+  Programm, sondern am Netz oder am Browser.
