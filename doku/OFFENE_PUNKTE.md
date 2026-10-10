@@ -9,7 +9,7 @@ Regularien?*
 
 ---
 
-## 1. Platzrundentreue messen — HOHE PRIORITÄT
+## 1. Platzrundentreue messen — HOHE PRIORITÄT, jetzt umsetzbar
 
 **Warum das der wichtigste offene Punkt ist**
 
@@ -47,16 +47,67 @@ Das Muster passt außerdem zur Lage in Schiefbahn-Unterbruch: Die Abweichung
 nach außen ist dort am größten, wo die Platzrunde ohnehin am nächsten an die
 Bebauung heranführt.
 
-### Was dafür fehlt
+### Soll-Platzrunde — BESCHAFFT
 
-**Die Soll-Platzrunde als Geometrie.** Im Platzprofil ist `platzrunde`
-bisher nur ein Ja/Nein-Schalter, der die Platzrundenerkennung einschaltet.
-Es gibt keinen Linienzug, gegen den gemessen werden könnte.
+Die empfohlene Platzrunde EDLN liegt seit dem 10.10.2026 als Geometrie im
+Platzprofil unter `platzrunde_geometrie`:
 
-Zu beschaffen: die Platzrunde EDLN aus der **Sichtanflugkarte** (AIP VFR
-beziehungsweise die Veröffentlichung des Flugplatzes), getrennt für beide
-Betriebsrichtungen (13 und 31) und, falls vorhanden, getrennt nach
-Luftfahrzeugart. Dazu die **festgelegte Platzrundenhöhe**.
+| Runde | Höhe | Lage | Punkte | Länge |
+|---|---|---|---|---|
+| Nordplatzrunde | 1.200 ft MSL | nordöstlich der Bahn | 40 | 11,5 km |
+| Südplatzrunde | 1.100 ft MSL | südwestlich der Bahn | 25 | 7,8 km |
+
+**Herkunft:** Der Flughafen Mönchengladbach veröffentlicht die empfohlene
+Platzrunde auf seiner Website, nicht im amtlichen Anflugblatt. Der
+Aeroclub 77 stellt dieselbe Darstellung als Kartendienst bereit, aus dem
+sich die Koordinaten exakt exportieren ließen. Die Rohdatei liegt unter
+`doku/belege/platzrunde_edln.kml`.
+
+**Wichtiger Vorbehalt, wörtlich aus der Quelle:** *Vorbehaltlich
+anderslautender Anweisungen durch die Platzkontrollstelle (TWR) gilt diese
+Platzrundendarstellung nur als Empfehlung.* Der Flughafen nennt selbst drei
+Gründe für zulässige Abweichungen: unterschiedliche Leistungsdaten der
+Luftfahrzeuge, Ausbildungsstand des Piloten samt genehmigter Abweichungen
+zu Ausbildungszwecken, sowie Wetter- und Sichtbedingungen.
+
+Dass die Platzrunde **nicht im amtlichen Anflugblatt** steht, ist ein
+eigener Befund: Ein ortsfremder Pilot findet sie nur, wenn er die Website
+des Flughafens kennt. In Pilotenforen wird genau darauf hingewiesen.
+
+### Was die Soll-Platzrunde über die Ortslagen verrät
+
+Kürzester seitlicher Abstand der empfohlenen Runden zur jeweiligen
+Ortslage:
+
+| Ortslage | Nordplatzrunde | Südplatzrunde |
+|---|---|---|
+| Willich-Schiefbahn | **100 m** | 2.300 m |
+| Willich-Neersen | 200 m | 500 m |
+| MG-Damm/Uedding | 600 m | 200 m |
+| Schiefbahn-Unterbruch | 600 m | 2.700 m |
+| Korschenbroich-Raderbroich | 1.300 m | 300 m |
+| Korschenbroich-Herrenshoff | 1.500 m | **0 m** |
+| MG-Neuwerk | 2.200 m | 600 m |
+
+Zwei Dinge springen ins Auge. Die **Nordplatzrunde streift Schiefbahn auf
+100 m** — dort genügt schon eine kleine Abweichung nach außen, um über die
+Bebauung zu kommen. Und die **Südplatzrunde führt direkt über
+Herrenshoff**.
+
+Zur Einordnung: Bei 1.200 ft MSL, also rund 355 m über Grund, ergibt die
+Pegelabschätzung für ein Propellerflugzeug bis 2 t
+
+| seitlicher Abstand | geschätzter Maximalpegel |
+|---|---|
+| 0 m (direkt darüber) | 70 dB(A) |
+| 500 m | 64 dB(A) |
+| 1.000 m | 58 dB(A) |
+| 1.500 m | 54 dB(A) |
+
+Eine Abweichung von 500 m nach außen — der Wert, den das Landesumweltamt
+Brandenburg nach der vierten Kurve als Schwerpunkt gemessen hat — macht
+also an einer 500 m entfernten Ortslage den Unterschied zwischen 64 und
+70 dB(A). Das ist der Kern der ganzen Fragestellung.
 
 ### Vorgeschlagenes Vorgehen
 
@@ -156,3 +207,7 @@ Umweltamt der Stadt oder ein mit der BI zusammenarbeitendes Büro.
   Stunde bei Sichtflugwetter mitzählen und mit der Erfassung vergleichen.
   Das ist die einzige echte Kontrolle der Erfassungsquote — und
   Voraussetzung dafür, die Untergrenze beziffern zu können.
+  **Den Termin nicht raten:** `python3 /app/beste_zeit.py --fenster 60`
+  sucht aus den bereits aufgezeichneten Daten das Zeitfenster mit den
+  meisten Bewegungen heraus und nennt die zu erwartende Stückzahl. Je
+  dichter der Betrieb, desto kürzer muss man vor Ort stehen.

@@ -474,3 +474,17 @@ abweichend festgelegt, weil OSM sie nicht sachgerecht abbildet:
 Soll eine Grenze geaendert werden, genuegt es, die Punktliste in
 `zonen_edln.json` zu ersetzen. Die Entfernungsfelder werden bei jedem Lauf
 neu aufgebaut, ein erneutes `zonen_holen.py` ist nicht noetig.
+
+
+## Wann lohnt sich die Zählung vor Ort?
+
+    python3 /app/beste_zeit.py --fenster 60
+
+Wertet alle bisher aufgezeichneten Tage aus und nennt das Zeitfenster mit
+den meisten Flugbewegungen, aufgeschlüsselt nach Wochentag und Stunde.
+Damit laesst sich der Vergleich von Hand gezaehlter und automatisch
+erfasster Bewegungen auf die Zeit legen, in der er am meisten hergibt.
+
+Mit `--tief` werden nur Bewegungen bis zur eingestellten Grenze
+(`low_ft`, derzeit 2500 ft) gezaehlt — das trifft den Platzrundenbetrieb
+besser und blendet hohen Durchgangsverkehr Richtung Duesseldorf aus.

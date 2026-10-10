@@ -198,6 +198,46 @@ def zonen_svg(mit_namen=True):
     return out
 
 
+def platzrunde_svg():
+    """Empfohlene Platzrunde als gestrichelte Linie.
+
+    Quelle und Vorbehalt stehen im Profil unter platzrunde_geometrie.
+    Die Darstellung ist der Massstab, gegen den Abweichungen gemessen
+    werden -- sie ist eine Empfehlung, keine verbindliche Festlegung.
+    """
+    pg = _P.get("platzrunde_geometrie") or {}
+    out = []
+    for name, rd in (pg.get("runden") or {}).items():
+        pts = rd.get("punkte") or []
+        if len(pts) < 3:
+            continue
+        d = " ".join(("M" if i == 0 else "L") +
+                     f"{proj(a, b)[0]:.1f},{proj(a, b)[1]:.1f}"
+                     for i, (a, b) in enumerate(pts))
+        out.append(f'<path d="{d}" fill="none" stroke="#ffffff" '
+                   f'stroke-width="5" stroke-opacity="0.75"/>')
+        out.append(f'<path d="{d}" fill="none" stroke="#1b2430" '
+                   f'stroke-width="2" stroke-dasharray="9 6" '
+                   f'stroke-opacity="0.9"/>')
+        # Beschriftung an die aeusserste Ecke der jeweiligen Runde,
+        # damit sie nicht mit Ortsnamen oder dem Platznamen kollidiert
+        if "Nord" in name:
+            eck = max(pts, key=lambda q: q[0] - q[1])      # nordwestlichster
+            anker, dy = "end", -6
+        else:
+            eck = min(pts, key=lambda q: q[0] + q[1])      # suedwestlichster
+            anker, dy = "start", 14
+        x, y = proj(eck[0], eck[1])
+        if 0 <= x <= SZ and 0 <= y <= SZ:
+            txt = f'{name} {rd.get("hoehe_ft_msl", "")} ft MSL'
+            for stil in ('fill="none" stroke="#ffffff" stroke-width="3.6"',
+                         'fill="#1b2430"'):
+                out.append(f'<text x="{x:.1f}" y="{y+dy:.1f}" font-size="11.5" '
+                           f'font-weight="600" text-anchor="{anker}" {stil}'
+                           f'>{esc(txt)}</text>')
+    return out
+
+
 def nordpfeil_svg():
     """Nordpfeil und Massstab -- damit die Ausrichtung sichtbar belegt ist."""
     out = []
@@ -301,6 +341,7 @@ def karte(pts):
                  f'style="paint-order:stroke;stroke:#fff;stroke-width:3px">'
                  f'{esc(name)}</text>')
 
+    s += platzrunde_svg()
     s += nordpfeil_svg()
     s.append('</svg>')
     return "\n".join(s)
@@ -377,6 +418,7 @@ def heatmap(pts):
                      f'{esc(name)}</text>')
     x1, y1 = proj(LAT, LON)
     s.append(f'<circle cx="{x1:.1f}" cy="{y1:.1f}" r="5" fill="none" stroke="#000" stroke-width="2"/>')
+    s += platzrunde_svg()
     s += nordpfeil_svg()
     s.append('</svg>')
     return "\n".join(s), mx
