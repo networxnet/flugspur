@@ -44,6 +44,8 @@ VIEW_KM  = _P["view_km"]
 RUNWAYS  = _P["runways"]
 ORTE     = _P["orte"]
 DEMO     = (profil._env("DEMO") or "") not in ("", "0", "false")
+LUECKE_S = 120.0      # groessere Pause -> neue Spur
+MAX_KMH  = 800.0      # schneller ist keine Maschine hier unterwegs
 DEBOUNCE = 180
 
 
@@ -315,13 +317,24 @@ def karte(pts):
         by_ac[p["id"]].append(p)
     for acid, tr in by_ac.items():
         seg = []
-        prev_t = None
+        vor = None
         for p in tr:
-            if prev_t is not None and p["t"] - prev_t > 120:
-                _draw_seg(s, seg)
-                seg = []
+            if vor is not None:
+                dt = p["t"] - vor["t"]
+                trennen = dt > LUECKE_S
+                if not trennen and dt > 0:
+                    # Plausibilitaet: welche Geschwindigkeit setzt dieses
+                    # Streckenstueck voraus? Zu schnell heisst, dass hier
+                    # zwei unzusammenhaengende Meldungen verbunden wuerden --
+                    # das ergibt sonst eine gerade Linie quer ueber die Karte.
+                    km = hav_km(vor["lat"], vor["lon"], p["lat"], p["lon"])
+                    if km / (dt / 3600.0) > MAX_KMH:
+                        trennen = True
+                if trennen:
+                    _draw_seg(s, seg)
+                    seg = []
             seg.append(p)
-            prev_t = p["t"]
+            vor = p
         _draw_seg(s, seg)
 
     # Ortslagen: Zonen sind schon gezeichnet, hier nur die ohne Umriss

@@ -488,3 +488,20 @@ erfasster Bewegungen auf die Zeit legen, in der er am meisten hergibt.
 Mit `--tief` werden nur Bewegungen bis zur eingestellten Grenze
 (`low_ft`, derzeit 2500 ft) gezaehlt — das trifft den Platzrundenbetrieb
 besser und blendet hohen Durchgangsverkehr Richtung Duesseldorf aus.
+
+
+## Gerade Linien quer ueber die Karte
+
+Dafuer gibt es drei Ursachen, die gleich aussehen: ein echter
+Geradeausflug, eine Empfangsluecke (die Karte verbindet zwei Meldungen,
+zwischen denen Positionen fehlen) oder eine Verwechslung, wenn zwei
+Maschinen dieselbe Kennung tragen.
+
+Unterscheiden laesst sich das ueber die Geschwindigkeit, die ein
+Streckenstueck voraussetzt:
+
+    python3 /app/spuren_pruefen.py --tag 2026-10-10
+
+Die Karte trennt Spuren inzwischen nicht nur bei Pausen ueber 120 s,
+sondern auch dann, wenn ein Streckenstueck mehr als 800 km/h voraussetzen
+wuerde. Was danach noch als lange Gerade sichtbar bleibt, ist kein Fehler.
