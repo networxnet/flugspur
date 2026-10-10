@@ -205,7 +205,7 @@ class Zonenfeld:
     """
 
     ZELLE_M = 100.0
-    MAX_M = 2500.0          # darueber hinaus nicht mehr von Belang
+    MAX_M = 4000.0          # reicht bis zur 55-dB(A)-Schwelle eines Jets
 
     def __init__(self, ringe):
         self.ringe = ringe

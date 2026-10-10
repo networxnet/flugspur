@@ -14,7 +14,8 @@ import json, os, sys, math, glob, html
 from collections import defaultdict
 from datetime import datetime
 
-import profil, kennzeichen
+import profil
+import laerm, kennzeichen
 
 _P       = profil.lade()
 LAT      = _P["lat"]
@@ -110,6 +111,7 @@ def load(days):
                              "desc": N.muster(hexid=r.get("icao"),
                                               ogn_id=r.get("id"),
                                               desc=r.get("typ")),
+                                              "muster": r.get("typ"),
                              "kz": N.anzeige(hexid=r.get("icao"),
                                              ogn_id=r.get("id"),
                                              reg=r.get("reg")),
@@ -120,6 +122,7 @@ def load(days):
                         p = {"t": r.get("t"), "id": r.get("icao"), "lat": r.get("lat"),
                              "lon": r.get("lon"), "alt": r.get("alt_ft"),
                              "desc": r.get("desc") or r.get("type"),
+                             "muster": r.get("type"),
                              "kz": N.anzeige(hexid=r.get("icao"), reg=r.get("reg")),
                              "net": "ADSB"}
                     if (p["t"] and p["id"] and p["lat"] is not None
@@ -403,19 +406,42 @@ def bars(rows, unit="", color="#2c7fb8", maxw=560):
 # ------------------------------------------------------------------ Auswertung
 
 def ueberfluege(pts):
+    """Laermereignisse je Ortslage, gezaehlt ueber den Maximalpegel.
+
+    Ein Ereignis beginnt, sobald der geschaetzte Maximalpegel die untere
+    Schwelle erreicht; waehrend des Durchgangs wird der lauteste Wert
+    festgehalten. Begruendung und Grenzen: doku/METHODIK.md.
+    """
+    untere = laerm.SCHWELLEN[0]
+    grp_je_ac = {}
+    for p in pts:
+        g = laerm.gruppe(p.get("muster"), p.get("desc"))
+        if p["id"] not in grp_je_ac or (grp_je_ac[p["id"]] == "?" and g != "?"):
+            grp_je_ac[p["id"]] = g
     res = {}
     for name, ola, olo in ORTE:
-        last, ev = {}, []
+        laufend, ev = {}, []
         feld = FELDER.get(name)
         for p in pts:
-            if (feld.schraeg_m(p["lat"], p["lon"], p["alt"]) <= LAERM_M if feld
-                    else hav_km(ola, olo, p["lat"], p["lon"]) <= OVER_KM):
-                prev = last.get(p["id"])
-                if prev is None or p["t"] - prev > DEBOUNCE:
-                    ev.append(p)
-                last[p["id"]] = p["t"]
+            s_m = (feld.schraeg_m(p["lat"], p["lon"], p["alt"]) if feld
+                   else hav_km(ola, olo, p["lat"], p["lon"]) * 1000.0)
+            grp = grp_je_ac.get(p["id"], "?")
+            db = laerm.pegel_db(grp, s_m)
+            if db < untere:
+                continue
+            v = laufend.get(p["id"])
+            if v is None or p["t"] - v["t_letzt"] > DEBOUNCE:
+                v = dict(p)
+                v["db"], v["grp"], v["t_letzt"] = db, grp, p["t"]
+                laufend[p["id"]] = v
+                ev.append(v)
+            else:
+                v["t_letzt"] = p["t"]
+                if db > v["db"]:
+                    v["db"], v["alt"] = db, p["alt"]
         res[name] = ev
     return res
+
 
 def build(days, outfile):
     pts = load(days)
@@ -440,9 +466,11 @@ def build(days, outfile):
         e = ev[name]
         alts = [x["alt"] for x in e if x["alt"] is not None]
         note = ""
-        if alts:
-            tief = sum(1 for a in alts if a < 1500)
-            note = f"niedrigster {min(alts):.0f} ft, davon {tief} unter 1500 ft"
+        if e:
+            laut = sum(1 for x in e if x["db"] >= laerm.SCHWELLEN[1])
+            note = f"{laut} ueber {laerm.SCHWELLEN[1]:.0f} dB(A)"
+            if alts:
+                note += f", niedrigster {min(alts):.0f} ft"
         orte_rows.append((name, len(e), note))
     orte_rows.sort(key=lambda r: -r[1])
 
@@ -470,7 +498,7 @@ def build(days, outfile):
 
     gesamt_ev = sum(len(v) for v in ev.values())
     tief_ev = sum(1 for v in ev.values() for x in v
-                  if x["alt"] is not None and x["alt"] < 1500)
+                  if x["db"] >= laerm.SCHWELLEN[1])
 
     H = f"""<!DOCTYPE html>
 <html lang="de"><head><meta charset="utf-8">
@@ -502,8 +530,8 @@ def build(days, outfile):
 <div class="kpis">
  <div class="kpi"><b>{len(by_ac)}</b><span>verschiedene Luftfahrzeuge</span></div>
  <div class="kpi"><b>{len(pts)}</b><span>aufgezeichnete Positionen</span></div>
- <div class="kpi"><b>{gesamt_ev}</b><span>Ortsüberflüge</span></div>
- <div class="kpi"><b>{tief_ev}</b><span>davon unter 1500 ft</span></div>
+ <div class="kpi"><b>{gesamt_ev}</b><span>Lärmereignisse ab 55 dB(A)</span></div>
+ <div class="kpi"><b>{tief_ev}</b><span>davon ab 65 dB(A)</span></div>
 </div>
 
 <div class="lead"><b>Wie diese Auswertung entstanden ist:</b> Jede Linie und jede
@@ -564,7 +592,7 @@ Erstellt am {datetime.now():%d.%m.%Y um %H:%M} Uhr.
     with open(outfile, "w", encoding="utf-8") as f:
         f.write(H)
     print(f"Geschrieben: {outfile}  ({os.path.getsize(outfile)/1024:.0f} kB)")
-    print(f"  {len(by_ac)} Luftfahrzeuge, {len(pts)} Positionen, {gesamt_ev} Ortsueberfluege")
+    print(f"  {len(by_ac)} Luftfahrzeuge, {len(pts)} Positionen, {gesamt_ev} Laermereignisse")
     return True
 
 def available_days():

@@ -9,7 +9,8 @@ Aufruf:
 import json, os, sys, math, glob, csv
 from collections import defaultdict
 
-import profil, kennzeichen
+import profil
+import laerm, kennzeichen
 
 _P       = profil.lade()
 LAT      = _P["lat"]
@@ -87,6 +88,7 @@ def load_day(day):
                         "trk": r.get("course"),
                         "desc": N.muster(hexid=r.get("icao"), ogn_id=r.get("id"),
                                          desc=r.get("typ")),
+                        "muster": r.get("typ"),
                         "kz": N.anzeige(hexid=r.get("icao"), ogn_id=r.get("id"),
                                         reg=r.get("reg")),
                         "net": "OGN",
@@ -99,6 +101,7 @@ def load_day(day):
                         "lon": r.get("lon"), "alt": r.get("alt_ft"),
                         "trk": r.get("track"),
                         "desc": r.get("desc") or r.get("type"),
+                        "muster": r.get("type"),
                         "kz": N.anzeige(hexid=r.get("icao"), reg=r.get("reg")),
                         "net": "ADSB",
                     })
@@ -189,39 +192,78 @@ def report(day):
     else:
         print("\nBetriebsrichtung: zu wenig Daten")
 
-    # --- Ueberflugereignisse ---
-    print(f"\nUeberflug-Ereignisse je Ortslage "
-          f"({f'Schraegentfernung bis {LAERM_M:.0f} m zur bebauten Flaeche'
-             if FELDER else f'Radius {OVER_KM} km'}, "
-          f"ein Ereignis je Luftfahrzeug und Durchgang).")
-    print(f"  'tief' = hoechstens {LOW_FT:.0f} ft, laermrelevant. 'gesamt' = alle "
-          f"Hoehen,\n  enthaelt auch hohen Durchgangsverkehr Richtung Duesseldorf.")
+    # --- Laermereignisse nach geschaetztem Maximalpegel ---
+    S55, S65 = laerm.SCHWELLEN
+    print(f"\nLaermereignisse je Ortslage, gezaehlt ueber den geschaetzten "
+          f"Maximalpegel.")
+    print(f"  Grundlage: Luftfahrzeuggruppe nach DIN 45684-1, Bezugspegel in "
+          f"300 m,\n  Abstandsmass und Luftdaempfung ueber die "
+          f"Schraegentfernung zur Ortslage.")
+    print(f"  {S55:.0f} dB(A) = Orientierungswert DIN 18005 fuer Wohngebiete tags.")
+    print(f"  {S65:.0f} dB(A) = Tag-Schutzzone 1 nach FluLaermG (bestehende "
+          f"zivile Flugplaetze).")
+    print("  ABSCHAETZUNG AUS DER FLUGSPUR, KEINE MESSUNG.")
+
+    gruppe_je_ac = {}
+    for p in pts:
+        if p["id"] not in gruppe_je_ac or gruppe_je_ac[p["id"]] == "?":
+            g = laerm.gruppe(p.get("muster"), p.get("desc"))
+            if p["id"] not in gruppe_je_ac or g != "?":
+                gruppe_je_ac[p["id"]] = g
+
     events = defaultdict(list)
     for ortname, ola, olo in ORTE:
-        last = {}
+        feld = FELDER.get(ortname)
+        laufend = {}
         for p in pts:
-            if _trifft(ortname, ola, olo, p["lat"], p["lon"], p["alt"]):
-                prev = last.get(p["id"])
-                if prev is None or p["t"] - prev > DEBOUNCE:
-                    events[ortname].append(p)
-                last[p["id"]] = p["t"]
+            if feld:
+                s_m = feld.schraeg_m(p["lat"], p["lon"], p["alt"])
+            else:
+                s_m = hav_km(ola, olo, p["lat"], p["lon"]) * 1000.0
+            grp = gruppe_je_ac.get(p["id"], "?")
+            db = laerm.pegel_db(grp, s_m)
+            if db < S55:
+                continue
+            vor = laufend.get(p["id"])
+            if vor is None or p["t"] - vor["t_letzt"] > DEBOUNCE:
+                vor = {"db": db, "alt": p["alt"], "grp": grp,
+                       "kz": p.get("kz"), "t_letzt": p["t"]}
+                laufend[p["id"]] = vor
+                events[ortname].append(vor)
+            else:
+                vor["t_letzt"] = p["t"]
+                if db > vor["db"]:
+                    vor["db"], vor["alt"] = db, p["alt"]
 
     rows = []
     for ortname, _, _ in ORTE:
         ev = events.get(ortname, [])
+        ue55 = len(ev)
+        ue65 = sum(1 for e in ev if e["db"] >= S65)
         alts = [e["alt"] for e in ev if e["alt"] is not None]
-        tief = sum(1 for a in alts if a <= LOW_FT)
+        lautest = max((e["db"] for e in ev), default=None)
+        info = ""
         if alts:
-            info = (f"min {min(alts):5.0f} ft   median {sorted(alts)[len(alts)//2]:5.0f} ft"
-                    f"   unter 1500 ft: {sum(1 for a in alts if a < 1500)}")
-        else:
-            info = ""
-        print(f"  {ortname:34s} tief {tief:4d}   gesamt {len(ev):4d}   {info}")
+            info = (f"min {min(alts):5.0f} ft   median "
+                    f"{sorted(alts)[len(alts)//2]:5.0f} ft")
+        if lautest is not None:
+            info += f"   lautestes {lautest:4.1f} dB(A)"
+        print(f"  {ortname:30s} ueber {S55:.0f} dB: {ue55:4d}   "
+              f"ueber {S65:.0f} dB: {ue65:4d}   {info}")
+        nach_gruppe = defaultdict(int)
+        for e in ev:
+            nach_gruppe[e["grp"]] += 1
+        if nach_gruppe:
+            teile = ", ".join(f"{laerm.KLARTEXT[g]}: {n}"
+                              for g, n in sorted(nach_gruppe.items(),
+                                                 key=lambda x: -x[1]))
+            print(f"  {'':30s} davon {teile}")
         rows.append({
-            "tag": day, "ort": ortname, "ereignisse": len(ev),
+            "tag": day, "ort": ortname,
+            f"ueber_{S55:.0f}dB": ue55, f"ueber_{S65:.0f}dB": ue65,
+            "lautestes_db": round(lautest, 1) if lautest is not None else "",
             "min_ft": min(alts) if alts else "",
             "median_ft": sorted(alts)[len(alts)//2] if alts else "",
-            "unter_1500ft": sum(1 for a in alts if a < 1500) if alts else 0,
         })
 
     out = os.path.join(DATA_DIR, f"report_{day}.csv")

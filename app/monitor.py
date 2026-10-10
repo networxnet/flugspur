@@ -17,7 +17,8 @@ from urllib.parse import urlparse, parse_qs
 import subprocess, tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import profil, kennzeichen
+import profil
+import laerm, kennzeichen
 
 P = profil.lade()
 DATA = profil._env("DATA_DIR") or "/data"
@@ -81,6 +82,7 @@ def lies(tag):
                                 "desc": N.muster(hexid=r.get("icao"),
                                                  ogn_id=r.get("id"),
                                                  desc=r.get("typ")),
+                                                 "muster": r.get("typ"),
                                 "kz": N.anzeige(hexid=r.get("icao"),
                                                 ogn_id=r.get("id"),
                                                 reg=r.get("reg")),
@@ -92,6 +94,7 @@ def lies(tag):
                                 "lat": r.get("lat"), "lon": r.get("lon"),
                                 "alt": r.get("alt_ft"),
                                 "desc": r.get("desc") or r.get("type"),
+                                "muster": r.get("type"),
                                 "kz": N.anzeige(hexid=r.get("icao"),
                                                 reg=r.get("reg")),
                                 "kt": r.get("gs_kt")})
@@ -133,19 +136,34 @@ def zustand():
             aktuell[p["id"]] = p
 
     # Ueberflüge heute, getrennt nach tief und gesamt
-    ueber = defaultdict(lambda: [0, 0])   # [tief, gesamt]
+    # [ab 65 dB(A), ab 55 dB(A)] -- siehe doku/METHODIK.md
+    ueber = defaultdict(lambda: [0, 0])
+    S55, S65 = laerm.SCHWELLEN
+    grp_je_ac = {}
+    for p in pts:
+        g = laerm.gruppe(p.get("muster"), p.get("desc"))
+        if p["id"] not in grp_je_ac or (grp_je_ac[p["id"]] == "?" and g != "?"):
+            grp_je_ac[p["id"]] = g
     for name, ola, olo in P["orte"]:
-        zuletzt = {}
+        feld = FELDER.get(name)
+        laufend = {}
         for p in pts:
-            feld = FELDER.get(name)
-            if (feld.schraeg_m(p["lat"], p["lon"], p["alt"]) <= LAERM_M if feld
-                    else profil.hav_km(ola, olo, p["lat"], p["lon"]) <= OVER_KM):
-                v = zuletzt.get(p["id"])
-                if v is None or p["t"] - v > 180:
-                    ueber[name][1] += 1
-                    if p["alt"] is not None and p["alt"] <= LOW_FT:
-                        ueber[name][0] += 1
-                zuletzt[p["id"]] = p["t"]
+            s_m = (feld.schraeg_m(p["lat"], p["lon"], p["alt"]) if feld
+                   else profil.hav_km(ola, olo, p["lat"], p["lon"]) * 1000.0)
+            db = laerm.pegel_db(grp_je_ac.get(p["id"], "?"), s_m)
+            if db < S55:
+                continue
+            v = laufend.get(p["id"])
+            if v is None or p["t"] - v["t"] > 180:
+                laufend[p["id"]] = {"t": p["t"], "db": db, "laut": db >= S65}
+                ueber[name][1] += 1
+                if db >= S65:
+                    ueber[name][0] += 1
+            else:
+                v["t"] = p["t"]
+                if db >= S65 and not v["laut"]:
+                    v["laut"] = True
+                    ueber[name][0] += 1
 
     dateien = []
     for mus in (f"adsb_{tag}.ndjson", f"ogn_{tag}.ndjson"):
@@ -194,8 +212,8 @@ def seite():
         reihen = ['<tr><td colspan=7 style="color:#777;padding:14px">'
                   'Gerade nichts in der Luft (oder letzte Meldung älter als 2 Minuten).</td></tr>']
 
-    orte = "<tr><th>Ortslage</th><th align=right>tief</th>" \
-           "<th align=right>gesamt</th></tr>" + "".join(
+    orte = "<tr><th>Ortslage</th><th align=right>laut</th>" \
+           "<th align=right>hörbar</th></tr>" + "".join(
         f"<tr><td>{e(n)}</td>"
         f"<td align=right><b style='color:{'#b3261e' if z['ueber'].get(n,[0,0])[0] else '#1b2430'}'>"
         f"{z['ueber'].get(n,[0,0])[0]}</b></td>"
@@ -304,14 +322,15 @@ Zurück-Knopf des Browsers kommen Sie hierher zurück.</div></div></div>
 <th>km</th><th>Quelle</th><th>zuletzt</th></tr>
 {''.join(reihen)}</table></div>
 
-<div class=box><h2>Lärmereignisse heute &middot; {f"Schrägentfernung bis {LAERM_M:.0f} m"
+<div class=box><h2>Lärmereignisse heute &middot; {f"geschätzter Maximalpegel ab {laerm.SCHWELLEN[0]:.0f} dB(A)"
   if FELDER else f"{OVER_KM:g} km Umkreis"}</h2>
 <table>{orte}</table>
 <div style="padding:9px 15px;font-size:12px;color:#667;border-top:1px solid #eef2f6">
-<b>tief</b> = Durchgang in höchstens {LOW_FT:.0f} ft &middot;
-<b>gesamt</b> = alle Höhen. Gezählt wird, wenn die <b>Schrägentfernung</b>
-zur bebauten Fläche {LAERM_M:.0f} m oder weniger betrug — ein direkter
-Überflug ist dafür nicht nötig. Ein Ereignis je Luftfahrzeug und Durchgang.</div></div>
+<b>laut</b> = geschätzter Maximalpegel ab {laerm.SCHWELLEN[1]:.0f} dB(A) &middot;
+<b>hörbar</b> = ab {laerm.SCHWELLEN[0]:.0f} dB(A). Der Pegel wird aus
+Luftfahrzeuggruppe und Schrägentfernung geschätzt, nicht gemessen — ein
+direkter Überflug ist dafür nicht nötig. Ein Ereignis je Luftfahrzeug und
+Durchgang. Herleitung und Grenzen: doku/METHODIK.md.</div></div>
 
 <div class=box><h2>Dateien</h2>
 <table>{dat}
@@ -407,8 +426,8 @@ class H(BaseHTTPRequestHandler):
                 "tag": z["tag"], "in_der_luft": len(z["aktuell"]),
                 "meldungen_5min": len(z["letzte5"]),
                 "maschinen_heute": len({p["id"] for p in z["pts"]}),
-                "ueberfluege_tief": {k: v[0] for k, v in z["ueber"].items()},
-                "ueberfluege_gesamt": {k: v[1] for k, v in z["ueber"].items()},
+                "laerm_ab_65db": {k: v[0] for k, v in z["ueber"].items()},
+                "laerm_ab_55db": {k: v[1] for k, v in z["ueber"].items()},
                 "heartbeat_adsb_s": z["hb_adsb"][0],
                 "heartbeat_ogn_s": z["hb_ogn"][0],
             }, ensure_ascii=False).encode()
@@ -460,7 +479,7 @@ def konsole():
                       f"{str(p['alt'] or '-'):>6s} ft {d:5.1f} km  {p['q']}")
             if not z["aktuell"]:
                 print("  (gerade nichts in der Luft)")
-            tief = {k: v[0] for k, v in z["ueber"].items() if v[0]}
+            tief = {k: v[0] for k, v in z["ueber"].items() if v[0]}  # ab 65 dB(A)
             if tief:
                 print("\n  Tiefe Ueberfluege heute: " +
                       ", ".join(f"{k} {v}" for k, v in sorted(tief.items())))
