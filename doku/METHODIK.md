@@ -87,10 +87,27 @@ Zwei Abweichungen sind dokumentationspflichtig:
 
 * **Schiefbahn-Unterbruch:** OpenStreetMap führt hier nur einen Punkt und
   wenige Gebäudeflächen, zusammen rund 3 Hektar. Das greift zu kurz. Die
-  Abgrenzung des Gebiets stammt deshalb von der Bürgerinitiative und wurde
-  aus einer Kartenmarkierung über drei Passpunkte in Koordinaten
-  umgerechnet. Restabweichung der Passpunkte: **bis etwa 50 m**. Für eine
-  Gebietsgrenze ausreichend, für Aussagen über einzelne Grundstücke nicht.
+  Abgrenzung stammt von der Bürgerinitiative und ist über **vorhandene
+  Linien im Gelände** definiert — das ist überprüfbar und altert nicht:
+
+  | Seite | Grenze |
+  |---|---|
+  | Süden | Bundesautobahn A 52 |
+  | Westen | Landesstraße L 382 |
+  | Norden | Römerstraße |
+  | Osten | Stadtgrenze zu Kaarst (Bachlauf) |
+
+  Die vier Linien stammen aus OpenStreetMap und wurden zu einem
+  geschlossenen Ring verbunden; die Fläche beträgt **1,31 km²**. Zwei
+  Stellen mussten überbrückt werden, weil die Linien dort nicht
+  aneinanderstoßen: **170 m** zwischen dem Westende der Römerstraße und der
+  L 382 sowie **836 m** zwischen dem Ostende der Römerstraße und der
+  Stadtgrenze. Beide Überbrückungen sind gerade Verbindungen und als
+  solche in `zonen_edln.json` vermerkt.
+
+  Eine frühere, aus einer Kartenmarkierung abgezeichnete Fassung (2,11 km²,
+  Passpunktgenauigkeit rund 50 m) liegt unter `doku/belege/` und ist durch
+  die Linienbeschreibung **ersetzt**.
 * **Kaarst-Vorst** endet an Holzbüttgen; Holzbüttgen ist eine eigene
   Ortslage, damit Vorst keine fremden Bewegungen zugerechnet bekommt.
 
@@ -214,7 +231,52 @@ Bezugspegel:
 | Hubschrauber | 82,0 dB(A) |
 | Strahlflugzeug | 87,5 dB(A) |
 
-Zwischen einem Schulflugzeug und einem Strahlflugzeug liegen damit rund
+#### Unabhängige Gegenprüfung dieser Werte
+
+Die Bezugspegel sind hergeleitet, nicht abgeschrieben. Deshalb eine Probe
+aus einer völlig anderen Quelle: Die **Lärmschutzforderungen für
+Luftfahrzeuge (LSL), Kapitel VI** schreiben für die Musterzulassung eine
+Messung vor, bei der der Messpunkt **im Horizontalflug in 300 m Höhe** mit
+höchstzulässiger Dauerleistung überflogen wird — also exakt unsere
+Bezugsgeometrie.
+
+Die zulässigen Grenzwerte dort, abhängig von der Höchststartmasse:
+
+| Höchststartmasse | ICAO-Grenzwert | strengerer LSL-Grenzwert |
+|---|---|---|
+| 1.150 kg | 75,0 dB(A) | 71,0 dB(A) |
+| 1.350 kg | 77,6 dB(A) | 73,6 dB(A) |
+| 1.550 bis 2.050 kg | 80,3 dB(A) | 76,3 dB(A) |
+
+Eine Cessna 172 wiegt rund 1.100 kg, darf also höchstens etwa 75 dB(A) in
+300 m erreichen und bei „erhöhtem Schallschutz" rund 71 dB(A). **Unser
+Bezugspegel von 71,5 dB(A) für Propellerflugzeuge bis 2 t liegt genau in
+diesem Band** — näher am günstigen Ende, weil der Zertifizierungswert für
+maximale Dauerleistung gilt, die im Alltag nicht geflogen wird.
+
+Die Herleitung ist damit von zwei unabhängigen Seiten bestätigt. Das
+Landesumweltamt Brandenburg rechnet aus demselben Grund für Flüge in der
+Platzrunde mit einem **Abschlag von 4,5 dB(A)**, weil dort mit verringerter
+Leistung und Drehzahl geflogen wird.
+
+#### Warum wir den Platzrundenzuschlag nicht anwenden
+
+Das ist eine bewusste Entscheidung gegen das eigene Interesse. Die
+Landeplatz-Fluglärmleitlinie sieht für den Horizontalflugteil der
+Platzrunde einen **Zusatzpegel** vor (Abschnitt 5.2). Das Landesumweltamt
+Brandenburg kommt aus Messungen zum gegenteiligen Ergebnis und rechnet dort
+**leiser**. Der Unterschied erklärt sich daraus, worauf der Zuschlag jeweils
+bezogen wird.
+
+Wir können aus der Flugspur außerdem nicht zuverlässig unterscheiden, ob
+ein Flug zur Platzrunde gehört oder ein Durchgangsflug ist. Der Zuschlag
+ist in `app/laerm.py` hinterlegt, wird in der laufenden Auswertung aber
+**nicht angewendet**. Die ausgewiesenen Pegel sind dadurch im Zweifel zu
+niedrig, nicht zu hoch.
+
+### 5.1b Größenordnung
+
+Zwischen einem Schulflugzeug und einem Strahlflugzeug liegen rund
 **16 dB**. Das entspricht dem Faktor **6,3 in der Entfernung**: Ein Jet ist
 in 1,9 km so laut wie eine Cessna in 300 m. Genau deshalb reicht eine
 einheitliche Entfernungsschwelle für alle Luftfahrzeuge nicht aus.
@@ -313,6 +375,39 @@ Auflagen im Einzelfall, oder die Identität und Absicht eines Piloten.
 
 ---
 
+## 7b. Was vergleichbare amtliche Untersuchungen gefunden haben
+
+Für die Einordnung eigener Ergebnisse ist nützlich, was Behörden andernorts
+bereits festgestellt haben.
+
+Das **Landesumweltamt Brandenburg** hat an mehreren Verkehrslandeplätzen die
+tatsächlich geflogenen Platzrunden optisch und laseroptisch vermessen
+(Studien und Tagungsberichte, Band 43, 2003). Ergebnis: Es wurden
+**systematische Abweichungen von der vorgeschriebenen Platzrunde**
+festgestellt. Die Abweichung wächst mit dem Abstand vom Abrollpunkt,
+verlagert sich in Flugrichtung systematisch **nach außen**, erreicht nach
+der vierten Kurve mit **fast 500 m im Schwerpunkt** ihr Maximum und ist im
+Endanflug nahezu null. Einzelne Messwerte lagen über 1.400 m neben der
+Soll-Linie.
+
+Die Studie zieht daraus eine klare Folgerung: Werden systematische
+Abweichungen festgestellt, *muss der Flugplatzbetreiber durch die zuständige
+Behörde beauftragt werden, die Einhaltung der festgelegten Platzrunde zu
+gewährleisten.*
+
+Das ist für unsere Arbeit in zweierlei Hinsicht wichtig. Erstens ist die
+Fragestellung „halten sich die Flüge an die Platzrunde" **amtlich anerkannt
+und methodisch etabliert** — wir erfinden hier nichts. Zweitens ist die
+erwartete Größenordnung der Abweichung bekannt, woran sich eigene Messwerte
+einordnen lassen.
+
+Weiter stellt dieselbe Studie fest, dass an Verkehrslandeplätzen häufig
+**etwa die Hälfte der Flugbewegungen Platzrundenflüge** sind und dass das
+Maximum der Bewegungen regelmäßig auf das **Wochenende** fällt — also auf
+die Zeit mit der höchsten Störwirkung.
+
+---
+
 ## 8. Bekannte Lücken
 
 | Lücke | Wirkung | Umgang damit |
@@ -348,6 +443,19 @@ Auflagen im Einzelfall, oder die Identität und Absicht eines Piloten.
 
 ---
 
+## 9b. Belege im Repository
+
+Unter `doku/belege/` liegen die Unterlagen, aus denen Festlegungen
+abgeleitet wurden:
+
+* `unterbruch_markierung_bi.png` — die ursprüngliche Kartenmarkierung der
+  Bürgerinitiative
+* `kontrolle_unterbruch.png` — dieselbe Markierung mit der daraus
+  abgeleiteten Grenze überlagert, zur Sichtprüfung
+* `unterbruch_grenze.json` — die maßgebliche Grenze als Koordinatenliste
+
+---
+
 ## 10. Quellen
 
 * Gesetz zum Schutz gegen Fluglärm (FluLärmG), insbesondere § 2 Abs. 2
@@ -362,6 +470,10 @@ Auflagen im Einzelfall, oder die Identität und Absicht eines Piloten.
 * Luftverkehrs-Ordnung (LuftVO), Mindestflughöhen
 * Landeplatz-Lärmschutz-Verordnung
 * OpenStreetMap, © OpenStreetMap-Mitwirkende, ODbL
+* Lärmschutzforderungen für Luftfahrzeuge (LSL), Kapitel VI und X,
+  bekanntgemacht in den Nachrichten für Luftfahrer, NfL II 70/04
+* Landesumweltamt Brandenburg, Studien und Tagungsberichte Band 43 (2003),
+  „Schallimmissionen im Umfeld von Verkehrslandeplätzen im Land Brandenburg"
 * Open Glider Network Device Database
 
 ---
