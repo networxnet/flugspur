@@ -395,6 +395,11 @@ Abweichungen festgestellt, *muss der Flugplatzbetreiber durch die zuständige
 Behörde beauftragt werden, die Einhaltung der festgelegten Platzrunde zu
 gewährleisten.*
 
+Die Umsetzung dieses Vergleichs für EDLN ist als vorrangiger offener
+Punkt festgehalten: [`OFFENE_PUNKTE.md`](OFFENE_PUNKTE.md), Punkt 1.
+Dafür fehlt bislang die Soll-Platzrunde als Geometrie — im Platzprofil ist
+`platzrunde` nur ein Ja/Nein-Schalter.
+
 Das ist für unsere Arbeit in zweierlei Hinsicht wichtig. Erstens ist die
 Fragestellung „halten sich die Flüge an die Platzrunde" **amtlich anerkannt
 und methodisch etabliert** — wir erfinden hier nichts. Zweitens ist die

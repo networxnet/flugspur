@@ -84,6 +84,7 @@ Probemitschnitt, Auswertung und Grafik. Ergebnis: **BESTANDEN** oder
 Anleitungen in [`doku/`](doku/):
 
 - [`METHODIK.md`](doku/METHODIK.md) — **was erfasst wird, warum, und worauf es sich stützt**
+- [`OFFENE_PUNKTE.md`](doku/OFFENE_PUNKTE.md) — was noch zu tun ist und warum, nach Bedeutung geordnet
 - [`TESTPLAN.md`](doku/TESTPLAN.md) — **hier anfangen:** aufsetzen, prüfen, erst dann ausrollen
 - [`INSTALLATION_QNAP.md`](doku/INSTALLATION_QNAP.md) — Einrichtung Schritt für Schritt, rein grafisch
 - [`INSTALLATION_IMAGE.md`](doku/INSTALLATION_IMAGE.md) — Weg über GitHub und eigenes Image
