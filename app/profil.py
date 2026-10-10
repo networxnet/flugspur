@@ -292,3 +292,66 @@ class Zonenfeld:
 def lade_zonenfelder(P, zonen=None):
     z = zonen if zonen is not None else lade_zonen(P)
     return {n: Zonenfeld(r) for n, r in z.items() if r}
+
+
+def _umriss_ringe(feld_obj, puffer_m=0):
+    """Verschmilzt die Rasterzellen zu geschlossenen Umrisslinien.
+
+    Statt viele Einzelrechtecke zu zeichnen, werden nur die Kanten
+    zwischen bebauter und unbebauter Zelle gesammelt und zu Ringen
+    verkettet. Ergebnis: eine zusammenhaengende Flaeche je Ortslage,
+    Loecher inbegriffen.
+    """
+    f = feld_obj._feld
+    nla, nlo = feld_obj.nla, feld_obj.nlo
+
+    grenze = puffer_m / feld_obj.ZELLE_M
+
+    def voll(i, j):
+        return 0 <= i < nla and 0 <= j < nlo and f[i][j] <= grenze
+
+    kanten = {}
+    for i in range(nla):
+        for j in range(nlo):
+            if not voll(i, j):
+                continue
+            # gegen den Uhrzeigersinn, bebaute Zelle stets links
+            if not voll(i - 1, j):
+                kanten[(i, j)] = (i, j + 1)
+            if not voll(i, j + 1):
+                kanten[(i, j + 1)] = (i + 1, j + 1)
+            if not voll(i + 1, j):
+                kanten[(i + 1, j + 1)] = (i + 1, j)
+            if not voll(i, j - 1):
+                kanten[(i + 1, j)] = (i, j)
+
+    ringe = []
+    while kanten:
+        start = next(iter(kanten))
+        ring, p = [], start
+        while p in kanten:
+            ring.append(p)
+            nxt = kanten.pop(p)
+            p = nxt
+            if p == start:
+                break
+        if len(ring) >= 4:
+            ringe.append(ring)
+
+    # Geraden zusammenfassen und in Koordinaten umrechnen
+    zelle = feld_obj.ZELLE_M / 1000.0
+    raus = []
+    for ring in ringe:
+        kurz = []
+        for k, pt in enumerate(ring):
+            v, n = ring[k - 1], ring[(k + 1) % len(ring)]
+            if (pt[0] - v[0], pt[1] - v[1]) != (n[0] - pt[0], n[1] - pt[1]):
+                kurz.append(pt)
+        if len(kurz) < 3:
+            continue
+        raus.append([(feld_obj.la0 + i * zelle / feld_obj.kla,
+                      feld_obj.lo0 + j * zelle / feld_obj.klo) for i, j in kurz])
+    return raus
+
+
+Zonenfeld.umriss = _umriss_ringe

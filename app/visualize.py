@@ -25,8 +25,8 @@ OVER_KM  = _P["overflight_km"]
 ZONEN    = profil.lade_zonen(_P)
 FELDER   = profil.lade_zonenfelder(_P, ZONEN)
 LAERM_M  = float(_P.get("laerm_schraeg_m") or 1500)
-FARBEN   = ["#c2185b", "#1565c0", "#2e7d32", "#ef6c00",
-            "#6a1b9a", "#00838f", "#9e5b00", "#4e342e"]
+FARBEN   = ["#c2185b", "#1565c0", "#2e7d32", "#ef6c00", "#6a1b9a",
+            "#00838f", "#9e5b00", "#4e342e", "#546e7a", "#ad1457"]
 def _grundkarte():
     pf = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                       "plaetze", f"grundkarte_{_P['code'].lower()}.json")
@@ -152,33 +152,29 @@ def grundkarte_svg():
 
 
 def zonen_svg(mit_namen=True):
-    """Ortslagen als zusammenhaengende, farblich einheitliche Flaechen.
+    """Ortslagen als je eine zusammenhaengende, farbige Flaeche.
 
-    Die einzelnen OSM-Teilflaechen werden ueber ein 100-m-Raster zu einer
-    Flaeche je Ortslage verschmolzen -- sonst zerfaellt ein Ort optisch in
-    Dutzende Schnipsel."""
+    Die bebauten OSM-Teilflaechen werden ueber ein Raster mit 200 m
+    Toleranz verschmolzen und als geschlossener Umriss gezeichnet --
+    sonst zerfaellt ein Ort optisch in Dutzende Schnipsel.
+    """
     out = []
     for idx, (name, la, lo) in enumerate(ORTE):
         feld = FELDER.get(name)
         if not feld:
             continue
-        farbe = FARBEN[idx % len(FARBEN)]
-        teile = []
-        for u, l, o, r in feld.zellen():
-            x1, y1 = proj(o, l)
-            x2, y2 = proj(u, r)
-            teile.append(f'<rect x="{x1:.1f}" y="{y1:.1f}" '
-                         f'width="{max(x2-x1,0.6):.1f}" height="{max(y2-y1,0.6):.1f}"/>')
-        if not teile:
+        ringe = feld.umriss(200)
+        if not ringe:
             continue
-        # zweimal zeichnen: breiter Rand aussen, Flaeche innen -> wirkt wie
-        # eine einzige umrandete Zone statt vieler Kacheln
-        out.append(f'<g fill="{farbe}" stroke="{farbe}" stroke-width="7" '
-                   f'stroke-linejoin="round" opacity="0.30">'
-                   + "".join(teile) + '</g>')
-        out.append(f'<g fill="{farbe}" stroke="{farbe}" stroke-width="2.5" '
-                   f'stroke-linejoin="round" fill-opacity="0.34" '
-                   f'stroke-opacity="0.95">' + "".join(teile) + '</g>')
+        d = []
+        for r in ringe:
+            d.append(" ".join(("M" if i == 0 else "L") +
+                              f"{proj(a, b)[0]:.1f},{proj(a, b)[1]:.1f}"
+                              for i, (a, b) in enumerate(r)) + " Z")
+        farbe = FARBEN[idx % len(FARBEN)]
+        out.append(f'<path d="{" ".join(d)}" fill="{farbe}" fill-opacity="0.26" '
+                   f'fill-rule="evenodd" stroke="{farbe}" stroke-width="2.4" '
+                   f'stroke-linejoin="round" stroke-opacity="0.95"/>')
     if mit_namen:
         for idx, (name, la, lo) in enumerate(ORTE):
             if name not in FELDER:
@@ -187,11 +183,15 @@ def zonen_svg(mit_namen=True):
             if not (0 <= x <= SZ and 0 <= y <= SZ):
                 continue
             kurz = name.split("-", 1)[1] if "-" in name else name
-            out.append(f'<text x="{x:.1f}" y="{y:.1f}" font-size="12.5" '
-                       f'font-weight="700" text-anchor="middle" '
-                       f'fill="{FARBEN[idx % len(FARBEN)]}" '
-                       f'stroke="#ffffff" stroke-width="3.4" paint-order="stroke" '
-                       f'>{esc(kurz)}</text>')
+            for lage in ("unten", "oben"):
+                if lage == "unten":
+                    stil = ('fill="none" stroke="#ffffff" stroke-width="3.6" '
+                            'stroke-linejoin="round"')
+                else:
+                    stil = f'fill="{FARBEN[idx % len(FARBEN)]}"'
+                out.append(f'<text x="{x:.1f}" y="{y:.1f}" font-size="13" '
+                           f'font-weight="700" text-anchor="middle" {stil}'
+                           f'>{esc(kurz)}</text>')
     return out
 
 
@@ -298,11 +298,6 @@ def karte(pts):
                  f'style="paint-order:stroke;stroke:#fff;stroke-width:3px">'
                  f'{esc(name)}</text>')
 
-    # Nordpfeil
-    s.append(f'<g transform="translate(40,50)"><line x1="0" y1="18" x2="0" y2="-14" '
-             f'stroke="#333" stroke-width="2"/>'
-             f'<polygon points="0,-20 -5,-8 5,-8" fill="#333"/>'
-             f'<text x="0" y="34" font-size="12" fill="#333" text-anchor="middle">N</text></g>')
     s += nordpfeil_svg()
     s.append('</svg>')
     return "\n".join(s)
@@ -359,15 +354,15 @@ def heatmap(pts):
         feld = FELDER.get(name)
         if not feld:
             continue
-        farbe = FARBEN[idx % len(FARBEN)]
-        teile = []
-        for u, l, o, r in feld.zellen():
-            x1, y1 = proj(o, l); x2, y2 = proj(u, r)
-            teile.append(f'<rect x="{x1:.1f}" y="{y1:.1f}" '
-                         f'width="{max(x2-x1,0.6):.1f}" height="{max(y2-y1,0.6):.1f}"/>')
-        s.append(f'<g fill="none" stroke="{farbe}" stroke-width="5" '
-                 f'stroke-linejoin="round" stroke-opacity="0.85">'
-                 + "".join(teile) + '</g>')
+        d = []
+        for r in feld.umriss(200):
+            d.append(" ".join(("M" if i == 0 else "L") +
+                              f"{proj(a, b)[0]:.1f},{proj(a, b)[1]:.1f}"
+                              for i, (a, b) in enumerate(r)) + " Z")
+        if d:
+            s.append(f'<path d="{" ".join(d)}" fill="none" '
+                     f'stroke="{FARBEN[idx % len(FARBEN)]}" stroke-width="2.2" '
+                     f'stroke-linejoin="round" stroke-opacity="0.9"/>')
     for name, ola, olo in ORTE:
         x, y = proj(ola, olo)
         if 0 <= x <= SZ and 0 <= y <= SZ:

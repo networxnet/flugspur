@@ -450,3 +450,27 @@ Am MGL besteht **keine Transponderpflicht**, reine Mode-A/C-Maschinen bleiben
 unsichtbar. Alle Mengenangaben sind daher **Untergrenzen** — für Aussagen zur
 Spurtreue der erfassten Flüge ist das unerheblich, für absolute
 Bewegungszahlen nicht.
+
+## Ortslagen: Abgrenzung und Herkunft
+
+Die Zonen stammen aus OpenStreetMap (`zonen_holen.py`). Zwei Ortslagen sind
+abweichend festgelegt, weil OSM sie nicht sachgerecht abbildet:
+
+* **Schiefbahn-Unterbruch** – OSM kennt hier nur einen Punkt und wenige
+  Gebaeudeflaechen (zusammen rund 3 ha). Das tatsaechliche Gebiet Unterbruch
+  reicht von der Ostkante Schiefbahns bis an die A 52 im Sueden und wurde
+  von der Buergerinitiative in der Karte abgegrenzt; die Grenze liegt als
+  14-Eck mit 2,11 km2 in `zonen_edln.json` unter `grenze`. Die urspruenglich
+  aus OSM bezogenen bebauten Teilflaechen bleiben unter
+  `teilflaechen_bebaut` erhalten.
+  Die Umrechnung der Kartenmarkierung in Koordinaten erfolgte ueber drei
+  Passpunkte (Fernmeldeturm, Modellflugplatz, Kaiserhof); die Restabweichung
+  liegt bei etwa 50 m. Fuer eine Gebietsgrenze ist das ausreichend, fuer
+  Aussagen ueber einzelne Grundstuecke nicht.
+* **Kaarst-Vorst** – endet an Holzbuettgen. Holzbuettgen ist seither eine
+  eigene Ortslage (`Kaarst-Holzbuettgen`), damit Vorst nicht faelschlich
+  dessen Flugbewegungen zugerechnet bekommt.
+
+Soll eine Grenze geaendert werden, genuegt es, die Punktliste in
+`zonen_edln.json` zu ersetzen. Die Entfernungsfelder werden bei jedem Lauf
+neu aufgebaut, ein erneutes `zonen_holen.py` ist nicht noetig.

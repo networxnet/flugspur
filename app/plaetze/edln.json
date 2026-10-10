@@ -1,67 +1,72 @@
 {
-  "code": "EDLN",
-  "name": "Moenchengladbach",
-  "lat": 51.230356,
-  "lon": 6.504494,
-  "radius_nm": 15.0,
-  "max_alt_ft": 10000.0,
-  "interval_s": 5.0,
-  "low_ft": 2500.0,
-  "overflight_km": 1.5,
-  "view_km": 11.0,
-  "platzrunde": true,
-  "runways": [
-    {
-      "id": "13",
-      "heading": 135
-    },
-    {
-      "id": "31",
-      "heading": 315
-    }
-  ],
-  "orte": [
-    {
-      "name": "Schiefbahn-Unterbruch",
-      "lat": 51.2371,
-      "lon": 6.55033
-    },
-    {
-      "name": "Willich-Schiefbahn",
-      "lat": 51.24366,
-      "lon": 6.52923
-    },
-    {
-      "name": "Willich-Neersen",
-      "lat": 51.25362,
-      "lon": 6.47906
-    },
-    {
-      "name": "MG-Neuwerk",
-      "lat": 51.2151,
-      "lon": 6.46764
-    },
-    {
-      "name": "MG-Damm/Uedding",
-      "lat": 51.2313,
-      "lon": 6.47971
-    },
-    {
-      "name": "Korschenbroich-Herrenshoff",
-      "lat": 51.20768,
-      "lon": 6.50818
-    },
-    {
-      "name": "Korschenbroich-Raderbroich",
-      "lat": 51.20375,
-      "lon": 6.53157
-    },
-    {
-      "name": "Kaarst-Vorst",
-      "lat": 51.21583,
-      "lon": 6.59608
-    }
-  ],
-  "hinweis": "Keine Transponderpflicht, keine Laermmessstellen, kein oeffentliches Flugspurportal. Eigener Mitschnitt ist hier die einzige Datenquelle. Platzrunden sind nur Empfehlung des Laermschutzbeirats.",
-  "laerm_schraeg_m": 1500
+ "code": "EDLN",
+ "name": "Moenchengladbach",
+ "lat": 51.230356,
+ "lon": 6.504494,
+ "radius_nm": 15.0,
+ "max_alt_ft": 10000.0,
+ "interval_s": 5.0,
+ "low_ft": 2500.0,
+ "overflight_km": 1.5,
+ "view_km": 11.0,
+ "platzrunde": true,
+ "runways": [
+  {
+   "id": "13",
+   "heading": 135
+  },
+  {
+   "id": "31",
+   "heading": 315
+  }
+ ],
+ "orte": [
+  {
+   "name": "Schiefbahn-Unterbruch",
+   "lat": 51.23869,
+   "lon": 6.55115
+  },
+  {
+   "name": "Willich-Schiefbahn",
+   "lat": 51.24374,
+   "lon": 6.52949
+  },
+  {
+   "name": "Willich-Neersen",
+   "lat": 51.25445,
+   "lon": 6.48
+  },
+  {
+   "name": "MG-Neuwerk",
+   "lat": 51.21404,
+   "lon": 6.46671
+  },
+  {
+   "name": "MG-Damm/Uedding",
+   "lat": 51.2316,
+   "lon": 6.47882
+  },
+  {
+   "name": "Korschenbroich-Herrenshoff",
+   "lat": 51.20694,
+   "lon": 6.50752
+  },
+  {
+   "name": "Korschenbroich-Raderbroich",
+   "lat": 51.20178,
+   "lon": 6.53268
+  },
+  {
+   "name": "Kaarst-Vorst",
+   "lat": 51.21373,
+   "lon": 6.58443
+  },
+  {
+   "name": "Kaarst-Holzbuettgen",
+   "lat": 51.21801,
+   "lon": 6.60978
+  }
+ ],
+ "hinweis": "Keine Transponderpflicht, keine Laermmessstellen, kein oeffentliches Flugspurportal. Eigener Mitschnitt ist hier die einzige Datenquelle. Platzrunden sind nur Empfehlung des Laermschutzbeirats.",
+ "laerm_schraeg_m": 1500
 }
