@@ -165,6 +165,25 @@ genannt. Das lässt sich aus unseren Daten prüfen und beziffern.
 
 ---
 
+## 3b. MLAT-Genauigkeit empirisch bestimmen
+
+Fast alle Kleinflugzeuge werden per Multilateration geortet (siehe
+`METHODIK.md`, Abschnitt 8b). Wie genau das ist, wissen wir nicht —
+wir vermuten es nur.
+
+Es gibt aber eine saubere Messmöglichkeit: Luftfahrzeuge, die **gleichzeitig
+im Open Glider Network** erscheinen, liefern dort eine GPS-gestützte und
+damit genaue Position. Der Abstand zwischen beiden Positionen zum selben
+Zeitpunkt ist der MLAT-Fehler.
+
+Zu tun: Meldungen beider Quellen über Zeit und Kennzeichen paaren, den
+Abstand bilden, Verteilung und Median ausweisen. Damit ließe sich in der
+Methodik eine **belegte Zahl** statt einer Vermutung angeben.
+
+Dafür wird die OGN-Datei desselben Tages gebraucht.
+
+---
+
 ## 4. Äquivalenter Dauerschallpegel
 
 Gutachten beurteilen primär über den **äquivalenten Dauerschallpegel**, nicht

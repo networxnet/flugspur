@@ -114,6 +114,7 @@ def load(days):
                                               ogn_id=r.get("id"),
                                               desc=r.get("typ")),
                                               "muster": r.get("typ"),
+                                              "mlat": False,
                              "kz": N.anzeige(hexid=r.get("icao"),
                                              ogn_id=r.get("id"),
                                              reg=r.get("reg")),
@@ -125,6 +126,7 @@ def load(days):
                              "lon": r.get("lon"), "alt": r.get("alt_ft"),
                              "desc": r.get("desc") or r.get("type"),
                              "muster": r.get("type"),
+                             "mlat": bool(r.get("mlat")),
                              "kz": N.anzeige(hexid=r.get("icao"), reg=r.get("reg")),
                              "net": "ADSB"}
                     if (p["t"] and p["id"] and p["lat"] is not None
@@ -379,8 +381,14 @@ def _draw_seg(s, seg):
 def _poly(s, seg, col):
     d = " ".join(f"{proj(p['lat'], p['lon'])[0]:.1f},{proj(p['lat'], p['lon'])[1]:.1f}"
                  for p in seg)
+    # Positionen aus Multilateration sind ungenauer als echtes ADS-B und
+    # werden deshalb gestrichelt gezeichnet. Betroffen sind fast alle
+    # Kleinflugzeuge -- siehe doku/METHODIK.md.
+    mlat = sum(1 for p in seg if p.get("mlat")) > len(seg) / 2
+    strich = ' stroke-dasharray="6 4"' if mlat else ""
     s.append(f'<polyline points="{d}" fill="none" stroke="{col}" stroke-width="2" '
-             f'stroke-opacity="0.75" stroke-linejoin="round" stroke-linecap="round"/>')
+             f'stroke-opacity="0.75" stroke-linejoin="round" '
+             f'stroke-linecap="round"{strich}/>')
 
 # -------------------------------------------------------------------- Heatmap
 
@@ -545,11 +553,18 @@ def build(days, outfile):
     typ_rows = sorted(((k, len(v), "") for k, v in typen.items()),
                       key=lambda r: -r[1])[:15]
 
+    mlat_anteil = (100.0 * sum(1 for p in pts if p.get("mlat"))
+                   / max(len(pts), 1))
     legende = "".join(
         f'<span style="display:inline-flex;align-items:center;gap:6px;margin-right:18px;'
         f'font-size:13px"><span style="width:22px;height:5px;background:{c};'
         f'border-radius:2px;display:inline-block"></span>{esc(t)}</span>'
         for _, _, c, t in BANDS)
+    legende += (f'<span style="display:inline-flex;align-items:center;gap:6px;'
+                f'margin-right:18px;font-size:13px"><span style="width:22px;'
+                f'height:0;border-top:2px dashed #555;display:inline-block">'
+                f'</span>gestrichelt: Position aus Multilateration, ungenauer '
+                f'({mlat_anteil:.0f} % der Meldungen)</span>')
 
     gesamt_ev = sum(len(v) for v in ev.values())
     tief_ev = sum(1 for v in ev.values() for x in v

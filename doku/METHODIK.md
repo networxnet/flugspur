@@ -419,10 +419,64 @@ die Zeit mit der höchsten Störwirkung.
 |---|---|---|
 | Keine Transponderpflicht für VFR-Verkehr an Landeplätzen | Ein Teil der Flüge fehlt vollständig | Zahlen werden durchgängig als Untergrenze bezeichnet |
 | Empfangsabdeckung tiefer Flüge | tiefe Flüge im Nahbereich können fehlen | Vergleich mit Sichtbeobachtung im Testplan |
-| MLAT-Positionen werden nur an Einspeiser zurückgeliefert | ungenauere oder fehlende Positionen | zwei Quellen parallel |
+| **Fast alle Kleinflugzeuge werden per Multilateration geortet, nicht per ADS-B** | Positionsfehler von einigen Hundert Metern möglich | siehe eigener Abschnitt 8b |
 | Barometrische Höhe statt Höhe über Grund | Abweichung je nach Luftdruck | Gelände um EDLN ist nahezu eben, Fehler gering |
 | Musterkürzel fehlt bei manchen OGN-Meldungen | Gruppenzuordnung unsicher | getrennt als „Muster unbekannt" ausgewiesen |
 | Keine Messwerte | Pegel sind geschätzt | durchgängig gekennzeichnet |
+
+---
+
+## 8b. Multilateration: die wichtigste Einschränkung
+
+Bei der Auswertung eines vollständigen Tages (10.10.2026, 40.602 Meldungen,
+252 Luftfahrzeuge) zeigte sich ein Befund, der für die Bewertung aller
+Zahlen zentral ist.
+
+**Die Luftfahrzeuge, um die es geht, senden ihre Position gar nicht.**
+
+| Muster | Meldungen | davon per Multilateration |
+|---|---|---|
+| Piper PA-28 | 1.409 | **100 %** |
+| Cessna 152 | 1.211 | **100 %** |
+| Piper PA-44 | 752 | **100 %** |
+| Piper PA-25 | 649 | **100 %** |
+| SF 25 Motorsegler | 483 | **100 %** |
+| Robin DR400 | 472 | **100 %** |
+| Cessna 172 | 412 | **100 %** |
+| Airbus A320 | 6.047 | 2 % |
+| Airbus A320neo | 3.452 | 0 % |
+| Boeing 737-800 | 4.296 | 3 % |
+
+Verkehrsmaschinen senden echtes ADS-B mit GPS-Position. Kleinflugzeuge
+führen überwiegend nur einen Mode-S-Transponder **ohne Positionsangabe**.
+Ihre Position wird vom Empfängernetz aus Laufzeitunterschieden berechnet —
+Multilateration, kurz MLAT.
+
+**Was das bedeutet:**
+
+* Die Genauigkeit hängt von Anzahl und Anordnung der Empfänger ab und ist
+  typischerweise schlechter als bei ADS-B, besonders bei tiefen Flügen.
+* Es treten einzelne grob falsche Positionen auf. Im untersuchten Tag
+  meldete eine Piper PA-28 zeitweise Geschwindigkeiten bis **1.082 Knoten**
+  — physikalisch unmöglich. In der Karte erzeugte das gerade Linien über
+  mehrere Kilometer.
+* Die Zuordnung zu einer Ortslage kann dadurch im Einzelfall falsch sein.
+  Für Häufigkeiten über viele Ereignisse mittelt sich das weitgehend heraus,
+  für die Beurteilung eines einzelnen Überflugs nicht.
+
+**Wie damit umgegangen wird:**
+
+1. Streckenstücke, die mehr als 800 km/h voraussetzen würden, werden
+   getrennt statt gezeichnet.
+2. MLAT-gestützte Spuren werden in der Karte **gestrichelt** dargestellt,
+   der Anteil steht in der Legende.
+3. Die Textauswertung weist den Anteil der MLAT-Positionen aus.
+4. Einzelne Überflüge dürfen auf dieser Grundlage **nicht** gegenüber
+   einzelnen Piloten geltend gemacht werden.
+
+Positionen aus dem Open Glider Network beruhen dagegen auf GPS und sind
+genau. Luftfahrzeuge, die in beiden Quellen auftauchen, erlauben später
+eine empirische Abschätzung des MLAT-Fehlers — siehe `OFFENE_PUNKTE.md`.
 
 ---
 

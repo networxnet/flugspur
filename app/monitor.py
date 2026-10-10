@@ -105,6 +105,7 @@ def lies(tag):
                                              ogn_id=r.get("id"),
                                              desc=r.get("typ")),
                                              "muster": r.get("typ"),
+                                             "mlat": False,
                             "kz": N.anzeige(hexid=r.get("icao"),
                                             ogn_id=r.get("id"),
                                             reg=r.get("reg")),
@@ -117,6 +118,7 @@ def lies(tag):
                             "alt": r.get("alt_ft"),
                             "desc": r.get("desc") or r.get("type"),
                             "muster": r.get("type"),
+                            "mlat": bool(r.get("mlat")),
                             "kz": N.anzeige(hexid=r.get("icao"),
                                             reg=r.get("reg")),
                             "kt": r.get("gs_kt")})

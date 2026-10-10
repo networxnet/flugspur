@@ -89,6 +89,7 @@ def load_day(day):
                         "desc": N.muster(hexid=r.get("icao"), ogn_id=r.get("id"),
                                          desc=r.get("typ")),
                         "muster": r.get("typ"),
+                        "mlat": False,
                         "kz": N.anzeige(hexid=r.get("icao"), ogn_id=r.get("id"),
                                         reg=r.get("reg")),
                         "net": "OGN",
@@ -102,6 +103,7 @@ def load_day(day):
                         "trk": r.get("track"),
                         "desc": r.get("desc") or r.get("type"),
                         "muster": r.get("type"),
+                        "mlat": bool(r.get("mlat")),
                         "kz": N.anzeige(hexid=r.get("icao"), reg=r.get("reg")),
                         "net": "ADSB",
                     })
@@ -203,6 +205,10 @@ def report(day):
     print(f"  {S65:.0f} dB(A) = Tag-Schutzzone 1 nach FluLaermG (bestehende "
           f"zivile Flugplaetze).")
     print("  ABSCHAETZUNG AUS DER FLUGSPUR, KEINE MESSUNG.")
+    _ml = sum(1 for p in pts if p.get("mlat"))
+    if _ml:
+        print(f"  {100.0*_ml/len(pts):.0f} % der Positionen stammen aus "
+              f"Multilateration (ungenauer als ADS-B).")
 
     gruppe_je_ac = {}
     for p in pts:
@@ -227,7 +233,8 @@ def report(day):
             vor = laufend.get(p["id"])
             if vor is None or p["t"] - vor["t_letzt"] > DEBOUNCE:
                 vor = {"db": db, "alt": p["alt"], "grp": grp,
-                       "kz": p.get("kz"), "t_letzt": p["t"]}
+                       "kz": p.get("kz"), "mlat": bool(p.get("mlat")),
+                       "t_letzt": p["t"]}
                 laufend[p["id"]] = vor
                 events[ortname].append(vor)
             else:
@@ -252,9 +259,11 @@ def report(day):
               f"ueber {S65:.0f} dB: {ue65:4d}   {info}")
         nach_gruppe = defaultdict(int)
         for e in ev:
-            nach_gruppe[e["grp"]] += 1
+            # ueber den Klartext zusammenfassen: P 1.2 und P 1.3 sind
+            # beide "Propeller bis 2 t" und gehoeren in eine Zeile
+            nach_gruppe[laerm.KLARTEXT[e["grp"]]] += 1
         if nach_gruppe:
-            teile = ", ".join(f"{laerm.KLARTEXT[g]}: {n}"
+            teile = ", ".join(f"{g}: {n}"
                               for g, n in sorted(nach_gruppe.items(),
                                                  key=lambda x: -x[1]))
             print(f"  {'':30s} davon {teile}")
