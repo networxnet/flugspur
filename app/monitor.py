@@ -9,6 +9,7 @@ Die Seite aktualisiert sich alle 10 Sekunden von selbst.
 
 Im Browser:  http://<NAS-Adresse>:8099
 """
+import threading
 import json, os, sys, time, glob, html, socket
 from collections import defaultdict
 from datetime import datetime

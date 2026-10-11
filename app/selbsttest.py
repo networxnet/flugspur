@@ -200,6 +200,64 @@ finally:
     except OSError:
         pass
 
+# ------------------------------------------------- 6. Monitor startet
+# Uebersetzen allein genuegt nicht: Ein fehlender Import faellt erst beim
+# Ausfuehren auf. Deshalb wird der Monitor hier wirklich gestartet und
+# ueber das Netz befragt.
+kopf("6. Monitor startet und antwortet")
+_port = int(os.environ.get("TRACKER_SELBSTTEST_PORT", "8098"))
+_tmp2 = tempfile.mkdtemp()
+_umg = dict(os.environ, TRACKER_DATA_DIR=_tmp2,
+            TRACKER_MONITOR_PORT=str(_port))
+_pr = subprocess.Popen([sys.executable, os.path.join(APP, "monitor.py")],
+                       env=_umg, stdout=subprocess.PIPE,
+                       stderr=subprocess.STDOUT, text=True)
+try:
+    import urllib.request
+    _ok = False
+    for _ in range(25):
+        time.sleep(1)
+        if _pr.poll() is not None:
+            break
+        try:
+            with urllib.request.urlopen(
+                    f"http://127.0.0.1:{_port}/healthz", timeout=3) as r:
+                if r.status == 200:
+                    _ok = True
+                    break
+        except Exception:
+            pass
+    if _pr.poll() is not None:
+        _aus = (_pr.stdout.read() or "")[-500:]
+        melde(FAIL, "Monitor beendet sich sofort", _aus.strip())
+    elif not _ok:
+        melde(FAIL, "Monitor antwortet nicht",
+              f"Port {_port} liefert keine Antwort.")
+    else:
+        try:
+            with urllib.request.urlopen(
+                    f"http://127.0.0.1:{_port}/", timeout=15) as r:
+                _gr = len(r.read())
+            melde(OK, "Monitor startet und antwortet",
+                  f"Startseite {_gr/1024:.0f} kB ueber Port {_port}")
+        except Exception as e:
+            melde(FAIL, "Monitor liefert keine Startseite", str(e))
+finally:
+    _pr.terminate()
+    try:
+        _pr.wait(timeout=10)
+    except Exception:
+        _pr.kill()
+    for f in os.listdir(_tmp2):
+        try:
+            os.remove(os.path.join(_tmp2, f))
+        except OSError:
+            pass
+    try:
+        os.rmdir(_tmp2)
+    except OSError:
+        pass
+
 # ------------------------------------------------------------- Fazit
 print("\n" + "=" * 62)
 f = sum(1 for s, _, _ in ergebnisse if s == FAIL)
