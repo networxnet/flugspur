@@ -31,7 +31,7 @@ Beide Unterordner sind nötig. `data` bleibt zunächst leer.
 ## Schritt 2 — Dateien hochladen
 
 Entpacken Sie `flugspur.zip` auf Ihrem PC und laden Sie in File
-Station **die fünf `.py`-Dateien** in `Container/flugspur/app/` hoch:
+Station **die fünf `.py`-Dateien** in `Container/flugspur/repo/app/` hoch:
 
 ```
 adsb_logger.py   ogn_logger.py   summary.py   visualize.py   make_demo.py

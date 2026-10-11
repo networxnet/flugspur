@@ -14,7 +14,7 @@ Beim fertigen Image wären es fünf bis zehn Minuten je Versuch.
 
 | # | Schritt | Anleitung |
 |---|---|---|
-| 1 | Ordner `Container/flugspur/app` und `.../data` anlegen, fünf `.py`-Dateien und `plaetze/` hochladen | `INSTALLATION_QNAP.md` Schritt 1–2 |
+| 1 | Ordner `Container/flugspur/repo` (Arbeitskopie) und `.../data` anlegen, fünf `.py`-Dateien und `plaetze/` hochladen | `INSTALLATION_QNAP.md` Schritt 1–2 |
 | 2 | Pfadtest-Stack ausrollen, Logs prüfen, Stack wieder löschen | Schritt 3 |
 | 3 | Stack `flugspur` ausrollen | Schritt 4 |
 | 4 | **Selbsttest laufen lassen** | siehe unten |
