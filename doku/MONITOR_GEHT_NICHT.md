@@ -172,3 +172,23 @@ Sauberer, weil der Dienst dann nicht als root laeuft.
 Seit Oktober 2026 pruefen die Logger das beim Start und schreiben eine
 deutliche Meldung mit beiden Moeglichkeiten ins Protokoll, statt es als
 Stoerung der Datenquelle auszugeben.
+
+
+## OGN meldet nichts mehr nach „Verbinde …"
+
+Meist kein Fehler. Das Open Glider Network liefert nur dann Meldungen,
+wenn tatsaechlich ein Luftfahrzeug im Umkreis fliegt. Nachts, bei
+schlechtem Wetter und im Winter ist stundenlang nichts los.
+
+Seit Oktober 2026 schreibt der Dienst deshalb alle 30 Sekunden ein
+Lebenszeichen und alle 15 Minuten eine Zeile ins Protokoll — auch ohne
+Verkehr. Im Herzschlag steht dann:
+
+    gesamt=0        <- keine Position erfasst
+    zeilen=85       <- aber 85 Zeilen vom Server empfangen
+    verbunden=ja
+
+Stehen dort Zeilen, aber keine Positionen, ist alles in Ordnung. Bleibt
+`zeilen` dagegen bei 0, kommt wirklich nichts an — dann Netzwerk und
+IPv6 pruefen (`aprs.glidernet.org` hat auf manchen Anschluessen eine
+unerreichbare IPv6-Adresse).

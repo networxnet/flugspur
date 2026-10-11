@@ -77,16 +77,46 @@ def run():
             buf = b""
             s.settimeout(60)
             n = 0
+            zeilen = 0              # alles, was der Server schickt
+            letzter_hb = 0.0
+            letzter_bericht = time.time()
             while True:
                 chunk = s.recv(4096)
                 if not chunk:
                     raise ConnectionError("Verbindung vom Server geschlossen")
                 buf += chunk
+
+                # Lebenszeichen auch ohne Flugverkehr. Nachts meldet OGN
+                # nichts -- ohne diesen Takt sieht eine gesunde Verbindung
+                # im Monitor aus wie ein abgestuerzter Dienst.
+                jetzt = time.time()
+                if jetzt - letzter_hb > 30:
+                    letzter_hb = jetzt
+                    try:
+                        with open(os.path.join(OUT, "_heartbeat_ogn.txt"),
+                                  "w") as hb:
+                            hb.write(
+                                f"{int(jetzt)}\n"
+                                f"{datetime.datetime.now():%Y-%m-%d %H:%M:%S}\n"
+                                f"gesamt={n}\nzeilen={zeilen}\n"
+                                f"verbunden=ja\n")
+                    except OSError as e:
+                        log(f"Herzschlag nicht schreibbar: {e}")
+                if jetzt - letzter_bericht > 900:
+                    letzter_bericht = jetzt
+                    if n:
+                        log(f"verbunden, {n} Positionen erfasst, "
+                            f"{zeilen} Zeilen vom Server")
+                    else:
+                        log(f"verbunden, bisher keine Position im Umkreis "
+                            f"({zeilen} Zeilen vom Server). Nachts und bei "
+                            f"schlechtem Wetter ist das normal.")
                 while b"\n" in buf:
                     line, buf = buf.split(b"\n", 1)
                     t = line.decode("utf-8", "replace").strip()
+                    zeilen += 1
                     if not t or t.startswith("#"):
-                        continue
+                        continue        # Kommentar- und Lebenszeichenzeilen
                     m = PAT.match(t)
                     if not m:
                         continue
