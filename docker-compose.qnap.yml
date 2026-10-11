@@ -89,3 +89,38 @@ services:
     volumes:
       - ${FS_APP_PFAD:-/share/CACHEDEV1_DATA/Container/flugspur/repo/app}:/app:ro
       - ${FS_DATA_PFAD:-/share/CACHEDEV1_DATA/Container/flugspur/data}:/data:ro
+
+  # ---------------------------------------------------------------------
+  # Holt neue Staende aus dem Repository. Die uebrigen Dienste merken die
+  # Aenderung selbst und beenden sich; Docker startet sie mit dem neuen
+  # Code neu (siehe app/neustart.py). Damit ist ein Update ein Commit,
+  # mehr nicht.
+  #
+  # Abschalten: FS_UPDATE_S auf 0 setzen.
+  # ---------------------------------------------------------------------
+  aktualisierer:
+    image: alpine/git:latest
+    container_name: ${STACK:-flugspur}-aktualisierer
+    restart: unless-stopped
+    environment:
+      - FS_UPDATE_S=${FS_UPDATE_S:-900}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        git config --global --add safe.directory /repo
+        if [ "$${FS_UPDATE_S}" = "0" ]; then
+          echo "[update] abgeschaltet (FS_UPDATE_S=0)"; sleep infinity
+        fi
+        echo "[update] aktiv, alle $${FS_UPDATE_S} s"
+        while true; do
+          vorher=$$(git -C /repo rev-parse HEAD 2>/dev/null)
+          git -C /repo pull --ff-only 2>&1 | sed 's/^/[update] /'
+          nachher=$$(git -C /repo rev-parse HEAD 2>/dev/null)
+          if [ "$$vorher" != "$$nachher" ]; then
+            echo "[update] neuer Stand: $$nachher"
+            git -C /repo log -1 --format='[update] %s' 2>/dev/null
+          fi
+          sleep "$${FS_UPDATE_S}"
+        done
+    volumes:
+      - ${FS_REPO_PFAD:-/share/CACHEDEV1_DATA/Container/flugspur/repo}:/repo

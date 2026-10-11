@@ -17,6 +17,7 @@ Start: python3 ogn_logger.py
 import socket, time, os, re, json, math, datetime
 
 import profil
+import neustart
 
 _P = profil.lade()
 SITE = _P["code"]
@@ -63,7 +64,9 @@ def run():
     log(f"Kennzeichen: {namen.umfang[0]} aus ADS-B gelernt, "
         f"{namen.umfang[1]} in der OGN-Geraetedatenbank")
     ddb_zuletzt = time.time()
+    _START_STAND = neustart.stand()
     while True:
+        neustart.beenden_wenn_neu(_START_STAND, log)
         try:
             log(f"Verbinde {APRS_HOST}:{APRS_PORT} Filter {FILTER}")
             s = socket.create_connection((APRS_HOST, APRS_PORT), timeout=30)

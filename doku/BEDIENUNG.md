@@ -505,3 +505,18 @@ Streckenstueck voraussetzt:
 Die Karte trennt Spuren inzwischen nicht nur bei Pausen ueber 120 s,
 sondern auch dann, wenn ein Streckenstueck mehr als 800 km/h voraussetzen
 wuerde. Was danach noch als lange Gerade sichtbar bleibt, ist kein Fehler.
+
+
+## Updates
+
+Es gibt nichts zu tun. Der Dienst `aktualisierer` holt alle 15 Minuten
+den neuen Stand aus dem Repository, die Dauerprozesse starten sich selbst
+neu. Einzelheiten und das Abschalten: `GIT_ARBEITSKOPIE.md`.
+
+Nachsehen, ob es geklappt hat:
+
+    docker logs --tail 20 flugspur-aktualisierer
+    docker logs --tail 20 flugspur-monitor
+
+Im Monitor-Protokoll steht bei einem Wechsel die Zeile
+`[neustart] Neuer Programmstand erkannt, beende mich.`

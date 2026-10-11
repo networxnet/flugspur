@@ -9,6 +9,7 @@ import json, os, sys, time, math, urllib.request, urllib.error
 from datetime import datetime, timezone
 
 import profil
+import neustart
 
 _P        = profil.lade()
 SITE      = _P["code"]
@@ -104,9 +105,11 @@ def main():
     si = 0
     backoff = INTERVAL
     fh, fh_day = None, None
+    _START_STAND = neustart.stand()
     try:
         while True:
             cycle_start = time.time()
+            neustart.beenden_wenn_neu(_START_STAND)
             name, tmpl = SOURCES[si % len(SOURCES)]
             url = tmpl.format(lat=LAT, lon=LON, nm=RADIUS_NM)
             try:

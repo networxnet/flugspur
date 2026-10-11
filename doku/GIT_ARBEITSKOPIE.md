@@ -120,16 +120,21 @@ Arbeitskopie liegt — das ist der ganze Grund für diesen Aufbau.
 
 ## Der Alltag danach
 
-Ich committe eine Änderung ins Repository und sage Ihnen Bescheid.
-Sie machen **auf der NAS**:
+**Sie machen nichts.**
+
+Im Stack läuft ein Dienst `aktualisierer`, der alle 15 Minuten
+`git pull` ausführt. Die übrigen Dienste merken, dass der Code getauscht
+wurde, beenden sich und werden von Docker mit dem neuen Stand neu
+gestartet. Spätestens eine Viertelstunde nach meinem Commit läuft bei
+Ihnen der neue Code.
+
+Soll es sofort gehen: im Container `flugspur-aktualisierer` einmal
+`git -C /repo pull` ausführen, oder den Container neu starten.
+
+Von Hand geht es natürlich weiterhin:
 
     cd /share/CACHEDEV1_DATA/Container/flugspur/repo
     git pull
-
-und starten anschließend den Stack neu.
-
-Alternativ über GitHub Desktop, falls die Arbeitskopie über ein
-Netzlaufwerk eingebunden ist: **Fetch origin** → **Pull origin**.
 
 Das war alles. Die Dateien auf dem NAS sind in dem Moment aktuell, in
 dem der Pull durchläuft.
@@ -221,3 +226,52 @@ Kopieren dauerhaft.
 
 Der Ordner `data` wird dabei zu keinem Zeitpunkt angefasst. Die
 Aufzeichnung läuft weiter, und alle bisherigen Tage bleiben auswertbar.
+
+
+---
+
+## Wie die automatische Aktualisierung funktioniert
+
+Drei Teile greifen ineinander:
+
+**Der Dienst `aktualisierer`** (Abbild `alpine/git`) hat die Arbeitskopie
+unter `/repo` eingebunden und führt in einer Schleife `git pull --ff-only`
+aus. Er fasst sonst nichts an und hat keinen Zugriff auf den Docker-Dienst.
+
+**`app/neustart.py`** bildet beim Start eine Kennzahl über alle
+Python-Dateien in `/app`. Die Dauerprozesse prüfen diese Kennzahl
+regelmäßig. Hat sie sich geändert, beenden sie sich mit Rückgabewert 0.
+
+**`restart: unless-stopped`** sorgt dafür, dass Docker sie sofort wieder
+startet — und dabei den neuen Code einliest.
+
+Kein Docker-Socket, keine erhöhten Rechte, kein Dienst, der andere
+Container steuert. Jeder Prozess entscheidet für sich.
+
+### Die zwei Sicherungen
+
+**Fehlerhafter Code wird nicht übernommen.** Vor dem Neustart wird jede
+Datei übersetzt. Scheitert das, läuft der Prozess mit dem alten, noch im
+Speicher liegenden Stand weiter und meldet den Fehler im Protokoll. Ein
+Tippfehler im Repository kann die Aufzeichnung also nicht stoppen.
+
+**Halbe Stände werden abgewartet.** Erst wenn sich 20 Sekunden lang
+nichts mehr geändert hat, wird neu gestartet. Sonst erwischt man einen
+`git pull` mitten im Schreiben.
+
+### Einstellungen
+
+| Variable | Vorgabe | Bedeutung |
+|---|---|---|
+| `FS_UPDATE_S` | `900` | Abstand zwischen zwei `git pull` in Sekunden |
+| `FS_REPO_PFAD` | `…/Container/flugspur/repo` | Arbeitskopie, vom Aktualisierer beschreibbar |
+
+**`FS_UPDATE_S=0` schaltet die Automatik ab.** Sinnvoll, wenn Sie eine
+Messreihe fahren und während dieser Zeit keinen Code-Wechsel wollen.
+
+### Einmalig nötig
+
+Der Dienst ist neu, deshalb muss die Stack-Definition in Portainer einmal
+aktualisiert werden: Compose-Datei neu einlesen beziehungsweise den Inhalt
+von `docker-compose.qnap.yml` ersetzen, `FS_REPO_PFAD` setzen, **Update
+the stack**. Danach ist Schluss mit dem Kopieren.

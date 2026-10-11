@@ -18,6 +18,7 @@ import subprocess, tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import profil
+import neustart
 import laerm, kennzeichen
 
 P = profil.lade()
@@ -591,4 +592,22 @@ if __name__ == "__main__":
         except Exception as ex:
             print(f"   FEHLER beim Lesen von {DATA}: {ex}", flush=True)
         print("Bereit. Jetzt im Browser oeffnen (http://, nicht https://).", flush=True)
+
+        # Der Webserver blockiert, deshalb beobachtet ein Nebenlaeufer den
+        # Programmstand. Bei neuem Code endet der Prozess, Docker startet
+        # ihn neu -- siehe app/neustart.py.
+        def _wacht(stand_beim_start):
+            while True:
+                time.sleep(60)
+                try:
+                    if neustart.noetig(stand_beim_start):
+                        print("[neustart] Neuer Programmstand erkannt, "
+                              "beende mich.", flush=True)
+                        os._exit(0)
+                except Exception as ex:
+                    print(f"[neustart] Pruefung fehlgeschlagen: {ex}",
+                          flush=True)
+
+        threading.Thread(target=_wacht, args=(neustart.stand(),),
+                         daemon=True).start()
         srv.serve_forever()
