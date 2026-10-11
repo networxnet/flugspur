@@ -5,9 +5,11 @@
 #   Settings -> Actions -> General -> Workflow permissions
 #     -> "Read and write permissions" aktivieren -> Save
 #
-# NACH dem ersten Lauf, sonst kann Portainer nicht laden:
-#   Profil -> Packages -> flugspur -> Package settings
-#     -> Change visibility -> Public
+# Bei einem OEFFENTLICHEN Repository wird das Paket automatisch oeffentlich
+# und laesst sich ohne Anmeldung ziehen -- am 11.10.2026 geprueft.
+# Nur falls das Repository privat ist, muss die Sichtbarkeit von Hand
+# gesetzt werden: Profil -> Packages -> flugspur -> Package settings
+#   -> Change visibility -> Public
 name: Image bauen und veroeffentlichen
 
 on:
