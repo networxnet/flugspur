@@ -317,3 +317,48 @@ Nur falls die Logger nicht nach `/data` schreiben dürfen, kommt dazu:
 | Name | Value |
 |---|---|
 | `FS_USER` | `0:0` |
+
+
+---
+
+## Feste Abbildmarke statt `latest` — empfohlen
+
+Jeder Commit erzeugt neben `latest` eine **eindeutige Marke** nach dem
+Muster `sha-<kurzhash>`, zum Beispiel:
+
+    ghcr.io/networxnet/flugspur:sha-d087e62
+
+### Warum das besser ist
+
+**Reproduzierbarkeit.** Zu jeder Marke gehört genau ein Commit mit Datum
+und Begruendung. Wenn jemand fragt, welcher Programmstand eine bestimmte
+Auswertung erzeugt hat, laesst sich das auf die Zeile genau beantworten —
+fuer eine Methodendokumentation ist das kein Luxus.
+
+**Nichts aendert sich ungefragt.** Waehrend einer Messreihe oder einer
+Zaehlung vor Ort bleibt der Stand stabil, bis Sie die Marke bewusst
+hochsetzen.
+
+**Der Wechsel greift zuverlaessig.** Bei `latest` verwenden Portainer und
+Docker gern das zwischengespeicherte Abbild weiter, und ein Update
+scheint wirkungslos. Eine neue Marke wurde noch nie geladen und *muss*
+geholt werden.
+
+### Vorgehen
+
+In Portainer unter *Environment variables*:
+
+| Name | Value |
+|---|---|
+| `FS_IMAGE` | `ghcr.io/networxnet/flugspur:sha-<kurzhash>` |
+
+Der Kurzhash steht im Repository bei jedem Commit und wird bei jeder
+Aenderung mitgeteilt. Alle vorhandenen Marken listet:
+
+    https://github.com/networxnet/flugspur/pkgs/container/flugspur
+
+### Zurueck auf einen aelteren Stand
+
+Marke auf den vorherigen Kurzhash setzen, Stack aktualisieren. Die alten
+Abbilder bleiben erhalten. Das ist die schnellste Rueckfallebene, die es
+gibt — schneller als jede Wiederherstellung von Dateien.
