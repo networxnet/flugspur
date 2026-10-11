@@ -65,6 +65,16 @@ def run():
         f"{namen.umfang[1]} in der OGN-Geraetedatenbank")
     ddb_zuletzt = time.time()
     _START_STAND = neustart.stand()
+    # Lebenszeichen sofort, sonst gilt der Dienst bis zur
+    # ersten Serverzeile als tot.
+    try:
+        with open(os.path.join(OUT, "_heartbeat_ogn.txt"), "w") as _hb:
+            _hb.write(f"{int(time.time())}\n"
+                      f"{datetime.datetime.now():%Y-%m-%d %H:%M:%S}\n"
+                      f"gesamt=0\nzeilen=0\n"
+                      f"verbunden=start\n")
+    except OSError as _e:
+        log(f"Herzschlag nicht schreibbar: {_e}")
     while not profil.datenverzeichnis_pruefen(OUT, log):
         time.sleep(60)
         neustart.beenden_wenn_neu(_START_STAND, log)
@@ -74,6 +84,16 @@ def run():
             log(f"Verbinde {APRS_HOST}:{APRS_PORT} Filter {FILTER}")
             s = socket.create_connection((APRS_HOST, APRS_PORT), timeout=30)
             s.sendall(f"user {CALLSIGN} pass -1 vers flugspur 1.0 filter {FILTER}\n".encode())
+            # Verbindung steht -- sofort melden
+            try:
+                with open(os.path.join(OUT, "_heartbeat_ogn.txt"), "w") as _hb:
+                    _hb.write(f"{int(time.time())}\n"
+                              f"{datetime.datetime.now():%Y-%m-%d %H:%M:%S}\n"
+                              f"gesamt=0\nzeilen=0\n"
+                              f"verbunden=ja\n")
+            except OSError as _e:
+                log(f"Herzschlag nicht schreibbar: {_e}")
+
             buf = b""
             s.settimeout(60)
             n = 0
