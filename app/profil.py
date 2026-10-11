@@ -375,3 +375,41 @@ def _umriss_ringe(feld_obj, puffer_m=0):
 
 
 Zonenfeld.umriss = _umriss_ringe
+
+
+def datenverzeichnis_pruefen(pfad, melde=print):
+    """Prueft, ob in das Datenverzeichnis geschrieben werden kann.
+
+    Haeufigste Ursache fuer ein Nein: Das Abbild laeuft als Benutzer 1000,
+    das Verzeichnis gehoert aber root -- etwa weil es frueher von einem
+    Container angelegt wurde, der als root lief. Die Meldung nennt den
+    Ausweg, damit niemand erst im Protokoll raten muss.
+    """
+    import tempfile
+    try:
+        os.makedirs(pfad, exist_ok=True)
+        with tempfile.NamedTemporaryFile(dir=pfad, prefix="_schreibprobe_"):
+            pass
+        return True
+    except Exception as e:
+        try:
+            st = os.stat(pfad)
+            besitz = f"gehoert {st.st_uid}:{st.st_gid}"
+        except Exception:
+            besitz = "Eigentuemer unbekannt"
+        melde("")
+        melde("=" * 66)
+        melde(f" KEIN SCHREIBRECHT auf {pfad}")
+        melde(f"   {type(e).__name__}: {e}")
+        melde(f"   Prozess laeuft als {os.getuid()}:{os.getgid()}, "
+              f"Verzeichnis {besitz}")
+        melde("")
+        melde(" Abhilfe, eines von beidem:")
+        melde("   a) Im Stack die Variable FS_USER auf 0:0 setzen und")
+        melde("      den Stack aktualisieren.")
+        melde(f"   b) Auf der NAS: chown -R {os.getuid()}:{os.getgid()} "
+              f"<datenverzeichnis>")
+        melde("")
+        melde(" Es wird nichts aufgezeichnet, solange das nicht behoben ist.")
+        melde("=" * 66)
+        return False

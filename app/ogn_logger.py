@@ -65,6 +65,9 @@ def run():
         f"{namen.umfang[1]} in der OGN-Geraetedatenbank")
     ddb_zuletzt = time.time()
     _START_STAND = neustart.stand()
+    while not profil.datenverzeichnis_pruefen(OUT, log):
+        time.sleep(60)
+        neustart.beenden_wenn_neu(_START_STAND, log)
     while True:
         neustart.beenden_wenn_neu(_START_STAND, log)
         try:

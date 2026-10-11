@@ -149,3 +149,26 @@ und wie viele Punkte im Speicher liegen. Typische Befunde:
   gelesen.
 * **Alles ist schnell, die Seite trotzdem langsam.** Dann liegt es nicht am
   Programm, sondern am Netz oder am Browser.
+
+
+## Im Protokoll steht „Permission denied" auf /data
+
+Das Abbild von ghcr.io laeuft als Benutzer **1000**. Wurde das
+Datenverzeichnis frueher von einem Container angelegt, der als root lief,
+gehoert es root — und 1000 darf nicht hineinschreiben.
+
+Zwei Wege:
+
+**a) Den Container als root laufen lassen.** Im Stack die Variable
+`FS_USER` auf `0:0` setzen und den Stack aktualisieren. Einfach und
+sofort wirksam; so lief die Mount-Variante ohnehin die ganze Zeit.
+
+**b) Das Verzeichnis uebereignen.** Auf der NAS:
+
+    chown -R 1000:1000 /share/CACHEDEV1_DATA/Container/flugspur/data
+
+Sauberer, weil der Dienst dann nicht als root laeuft.
+
+Seit Oktober 2026 pruefen die Logger das beim Start und schreiben eine
+deutliche Meldung mit beiden Moeglichkeiten ins Protokoll, statt es als
+Stoerung der Datenquelle auszugeben.

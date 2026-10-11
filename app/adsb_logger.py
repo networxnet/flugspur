@@ -106,6 +106,9 @@ def main():
     backoff = INTERVAL
     fh, fh_day = None, None
     _START_STAND = neustart.stand()
+    while not profil.datenverzeichnis_pruefen(DATA_DIR, log):
+        time.sleep(60)
+        neustart.beenden_wenn_neu(_START_STAND)
     try:
         while True:
             cycle_start = time.time()
@@ -150,6 +153,20 @@ def main():
                 backoff = INTERVAL
             except KeyboardInterrupt:
                 raise
+            except OSError as e:
+                # Schreibfehler haben nichts mit der Quelle zu tun --
+                # ein Quellenwechsel wuerde hier nur verschleiern.
+                log(f"Schreiben nach {DATA_DIR} fehlgeschlagen: "
+                    f"{type(e).__name__}: {e}")
+                profil.datenverzeichnis_pruefen(DATA_DIR, log)
+                try:
+                    if fh:
+                        fh.close()
+                except Exception:
+                    pass
+                fh, fh_day = None, None
+                time.sleep(60)
+                continue
             except Exception as e:
                 log(f"Quelle {name} gestoert ({type(e).__name__}: {e}) -> wechsle")
                 si += 1
