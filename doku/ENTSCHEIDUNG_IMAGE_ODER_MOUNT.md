@@ -42,7 +42,7 @@ gibt genau **eine** QNAP-spezifische Zeile — den Pfad. Umzug auf einen Pi =
 Ordner kopieren, Pfad ändern. `python:3.12-slim` ist multi-arch und zieht auf
 dem Pi automatisch arm64. Der Umzug dauert fünf Minuten.
 
-### Weg B — Geschlossenes Image aus der Registry (`docker-compose.image.yml`)
+### Weg B — Geschlossenes Image aus der Registry (`docker-compose.yml`)
 
 Der Code ist fest ins Image gebacken, auf dem Host liegen nur noch Daten.
 
@@ -117,7 +117,7 @@ rund 30 Minuten später statt sofort.
 | Datei | Zweck |
 |---|---|
 | `docker-compose.qnap.yml` | Weg A, Bind-Mount, feste QNAP-Pfade |
-| `docker-compose.image.yml` | Weg B, geschlossenes Image, **ohne** feste Pfade |
+| `docker-compose.yml` | Weg B, geschlossenes Image, **ohne** feste Pfade |
 | `docker-compose.pfadtest.yml` | Vorabtest für beide Wege |
 | `Dockerfile` | Bauvorschrift, unprivilegiert (uid 1000) |
 | `.github/workflows/build.yml` | automatischer Multi-Arch-Build nach ghcr.io |

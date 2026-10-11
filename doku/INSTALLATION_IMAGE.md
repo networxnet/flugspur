@@ -31,7 +31,7 @@ flugspur/
 ├── .github/workflows/        build.yml
 ├── doku/                     Anleitungen
 ├── Dockerfile
-├── docker-compose.image.yml
+├── docker-compose.yml
 ├── docker-compose.qnap.yml
 ├── docker-compose.pfadtest.yml
 ├── README.md
@@ -143,7 +143,7 @@ Entscheidend ist diese Zeile:
 Steht dort **FEHLGESCHLAGEN**, gehört der Ordner einem anderen Benutzer. Zwei
 Auswege, beide in Ordnung:
 
-- **A:** In `docker-compose.image.yml` bei allen drei Diensten `user: "0:0"`
+- **A:** In `docker-compose.yml` bei allen drei Diensten `user: "0:0"`
   ergänzen — der Container läuft dann als root.
 - **B:** In File Station Schreibrecht für alle auf `data` setzen.
 
@@ -158,7 +158,7 @@ Danach Stack `flugspur-pfadtest` wieder **löschen**.
 ## Schritt 8 — Den richtigen Stack ausrollen (5 Min)
 
 Portainer → **Stacks** → **Add stack** → Name `flugspur` →
-**Web editor** → Inhalt von `docker-compose.image.yml` einfügen.
+**Web editor** → Inhalt von `docker-compose.yml` einfügen.
 
 Bei **Environment variables** zwei Einträge:
 
@@ -200,7 +200,7 @@ jederzeit belegen, welche Programmfassung welche Auswertung erzeugt hat.
 Variante von selbst.
 
 **Weitergabe an andere Initiativen:** Es genügt der Imagename plus
-`docker-compose.image.yml`. Für einen anderen Flugplatz sind lediglich
+`docker-compose.yml`. Für einen anderen Flugplatz sind lediglich
 `EDLN_LAT` und `EDLN_LON` zu ändern — und in `app/summary.py` bzw.
 `app/visualize.py` die Liste `ORTE` mit den dortigen Ortslagen.
 
@@ -264,7 +264,7 @@ anzupassen.
 1. Stack anhalten.
 2. Profilordner anlegen und die Dateien hineinlegen, die abweichen sollen
    (anfangs meist keine — das Abbild ist auf demselben Stand).
-3. In Portainer die Stack-Definition durch `docker-compose.image.yml`
+3. In Portainer die Stack-Definition durch `docker-compose.yml`
    ersetzen, `FS_IMAGE` auf `ghcr.io/networxnet/flugspur:latest` setzen.
 4. `FS_APP_PFAD` und `FS_REPO_PFAD` werden nicht mehr gebraucht.
 5. Starten, dann `python3 /app/selbsttest.py` im Container.
@@ -277,3 +277,43 @@ Der Ordner `data` bleibt unverändert, die Aufzeichnung läuft weiter.
 In Portainer beim Stack **Re-pull image and redeploy**. Das Abbild wird
 von GitHub Actions bei jedem Commit neu gebaut; rechnen Sie nach meiner
 Meldung mit zwei bis drei Minuten, bis es bereitsteht.
+
+
+---
+
+## Einrichtung in Portainer, Feld für Feld
+
+Der häufigste Stolperstein sind die Formularfelder. Deshalb hier
+vollständig:
+
+*Stacks* → *Add stack* → Reiter **Repository**
+
+| Feld | Eintrag |
+|---|---|
+| Name | `flugspur` |
+| Repository URL | `https://github.com/networxnet/flugspur` |
+| Repository reference | `refs/heads/main` |
+| Compose path | `docker-compose.yml` |
+
+Das Feld *Compose path* darf nicht leer bleiben, auch wenn der Name der
+Vorgabe entspricht — Portainer füllt es nicht von selbst.
+
+Unter **Environment variables** genügt in aller Regel eine einzige Zeile:
+
+| Name | Value |
+|---|---|
+| `FS_MONITOR_PORT` | `8077` |
+
+Alles andere hat brauchbare Vorgaben: das Abbild, der Datenpfad, der
+Profilordner. Tragen Sie nur ein, was abweichen soll.
+
+**Achtung beim Einfügen:** Name und Wert sind zwei getrennte Felder. Wer
+`FS_DATA_PFAD=/share/...` am Stück einfügt, landet mit dem Gleichheits-
+zeichen im Namensfeld, und der Start scheitert mit einer Meldung über ein
+unerwartetes Zeichen im Variablennamen.
+
+Nur falls die Logger nicht nach `/data` schreiben dürfen, kommt dazu:
+
+| Name | Value |
+|---|---|
+| `FS_USER` | `0:0` |

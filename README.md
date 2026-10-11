@@ -65,7 +65,7 @@ die Containernamen richten sich danach.
 ## Schnellstart (Portainer)
 
 ```yaml
-# Stacks -> Add stack -> Web editor -> docker-compose.image.yml einfuegen
+# Stacks -> Add stack -> Web editor -> docker-compose.yml einfuegen
 # Environment variables:
 #   FS_IMAGE       ghcr.io/networxnet/flugspur:latest
 #   FS_DATA_PFAD   /share/CACHEDEV1_DATA/Container/flugspur/data
