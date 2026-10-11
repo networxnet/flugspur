@@ -61,7 +61,7 @@ Platzprofil unter `platzrunde_geometrie`:
 Platzrunde auf seiner Website, nicht im amtlichen Anflugblatt. Der
 Aeroclub 77 stellt dieselbe Darstellung als Kartendienst bereit, aus dem
 sich die Koordinaten exakt exportieren ließen. Die Rohdatei liegt unter
-`doku/belege/platzrunde_edln.kml`.
+`doku/belege/platzrunde_edln.geojson`.
 
 **Wichtiger Vorbehalt, wörtlich aus der Quelle:** *Vorbehaltlich
 anderslautender Anweisungen durch die Platzkontrollstelle (TWR) gilt diese

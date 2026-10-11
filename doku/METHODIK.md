@@ -507,11 +507,19 @@ eine empirische Abschätzung des MLAT-Fehlers — siehe `OFFENE_PUNKTE.md`.
 Unter `doku/belege/` liegen die Unterlagen, aus denen Festlegungen
 abgeleitet wurden:
 
-* `unterbruch_markierung_bi.png` — die ursprüngliche Kartenmarkierung der
-  Bürgerinitiative
-* `kontrolle_unterbruch.png` — dieselbe Markierung mit der daraus
-  abgeleiteten Grenze überlagert, zur Sichtprüfung
-* `unterbruch_grenze.json` — die maßgebliche Grenze als Koordinatenliste
+* `unterbruch_grenze_osm.svg` — die maßgebliche Gebietsgrenze auf
+  OpenStreetMap-Grundlage, mit benannten Seiten. Erzeugt von
+  `doku/bild_unterbruch.py`
+* `unterbruch_grenze.json` — dieselbe Grenze als Koordinatenliste
+* `platzrunde_edln.geojson` — die empfohlene Platzrunde als Koordinaten
+
+![Abgrenzung Unterbruch](belege/unterbruch_grenze_osm.svg)
+
+Die ursprüngliche Festlegung erfolgte anhand einer Markierung in einem
+kommerziellen Kartendienst. Dieses Bildmaterial ist aus urheberrechtlichen
+Gründen nicht Bestandteil dieses Repositorys; maßgeblich und hier
+dokumentiert ist ohnehin die Beschreibung über A 52, L 382, Römerstraße
+und Stadtgrenze.
 
 ---
 
