@@ -6,7 +6,11 @@
 #
 #  Beide Werte haben eine Vorgabe und koennen in Portainer unter
 #  "Environment variables" ueberschrieben werden:
-#     FS_IMAGE      z. B. ghcr.io/networxnet/flugspur:1.0
+#     FS_IMAGE        z. B. ghcr.io/networxnet/flugspur:1.0
+#     FS_PROFIL_PFAD  optional: Ordner mit abweichenden Profildateien.
+#                     Was dort liegt, hat Vorrang vor dem Abbild --
+#                     edln.json, zonen_edln.json, grundkarte_edln.json.
+#                     Darf leer oder nicht vorhanden sein.
 #     FS_DATA_PFAD  z. B. /share/CACHEDEV1_DATA/Container/flugspur/data   (QNAP)
 #                          /mnt/daten/edln/data                  (Raspberry Pi)
 #
@@ -16,6 +20,9 @@ services:
 
   adsb:
     image: ${FS_IMAGE:-ghcr.io/networxnet/flugspur:latest}
+    # Abbild laeuft als Benutzer 1000. Scheitert das Schreiben nach
+    # /data auf dem Share, FS_USER=0:0 setzen.
+    user: "${FS_USER:-1000:1000}"
     container_name: ${STACK:-flugspur}-adsb
     restart: unless-stopped
     command: ["python3", "/app/adsb_logger.py"]
@@ -29,9 +36,13 @@ services:
       TRACKER_HEARTBEAT: "/data/_heartbeat_adsb.txt"
     volumes:
       - ${FS_DATA_PFAD:-/share/CACHEDEV1_DATA/Container/flugspur/data}:/data
+      - ${FS_PROFIL_PFAD:-/share/CACHEDEV1_DATA/Container/flugspur/profil}:/profil:ro
 
   ogn:
     image: ${FS_IMAGE:-ghcr.io/networxnet/flugspur:latest}
+    # Abbild laeuft als Benutzer 1000. Scheitert das Schreiben nach
+    # /data auf dem Share, FS_USER=0:0 setzen.
+    user: "${FS_USER:-1000:1000}"
     container_name: ${STACK:-flugspur}-ogn
     restart: unless-stopped
     command: ["python3", "/app/ogn_logger.py"]
@@ -43,9 +54,13 @@ services:
       TRACKER_HEARTBEAT: "/data/_heartbeat_ogn.txt"
     volumes:
       - ${FS_DATA_PFAD:-/share/CACHEDEV1_DATA/Container/flugspur/data}:/data
+      - ${FS_PROFIL_PFAD:-/share/CACHEDEV1_DATA/Container/flugspur/profil}:/profil:ro
 
   summary:
     image: ${FS_IMAGE:-ghcr.io/networxnet/flugspur:latest}
+    # Abbild laeuft als Benutzer 1000. Scheitert das Schreiben nach
+    # /data auf dem Share, FS_USER=0:0 setzen.
+    user: "${FS_USER:-1000:1000}"
     container_name: ${STACK:-flugspur}-summary
     restart: unless-stopped
     command: ["sleep", "infinity"]
@@ -60,10 +75,14 @@ services:
       TRACKER_VIEW_KM: "11"
     volumes:
       - ${FS_DATA_PFAD:-/share/CACHEDEV1_DATA/Container/flugspur/data}:/data
+      - ${FS_PROFIL_PFAD:-/share/CACHEDEV1_DATA/Container/flugspur/profil}:/profil:ro
 
   # 4) Live-Monitor im Browser:  http://<Adresse>:8099
   monitor:
     image: ${FS_IMAGE:-ghcr.io/networxnet/flugspur:latest}
+    # Abbild laeuft als Benutzer 1000. Scheitert das Schreiben nach
+    # /data auf dem Share, FS_USER=0:0 setzen.
+    user: "${FS_USER:-1000:1000}"
     container_name: ${STACK:-flugspur}-monitor
     restart: unless-stopped
     command: ["python3", "/app/monitor.py"]
@@ -78,3 +97,4 @@ services:
       TRACKER_MONITOR_PORT: "${FS_MONITOR_PORT:-8099}"
     volumes:
       - ${FS_DATA_PFAD:-/share/CACHEDEV1_DATA/Container/flugspur/data}:/data:ro
+      - ${FS_PROFIL_PFAD:-/share/CACHEDEV1_DATA/Container/flugspur/profil}:/profil:ro

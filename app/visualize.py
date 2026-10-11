@@ -29,8 +29,7 @@ LAERM_M  = float(_P.get("laerm_schraeg_m") or 1500)
 FARBEN   = ["#c2185b", "#1565c0", "#2e7d32", "#ef6c00", "#6a1b9a",
             "#00838f", "#9e5b00", "#4e342e", "#546e7a", "#ad1457"]
 def _grundkarte():
-    pf = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                      "plaetze", f"grundkarte_{_P['code'].lower()}.json")
+    pf = profil.profil_datei(f"grundkarte_{_P['code'].lower()}.json")
     if not os.path.exists(pf):
         return None
     try:

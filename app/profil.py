@@ -21,6 +21,23 @@ import json, os, math
 BASE = os.path.dirname(os.path.abspath(__file__))
 PLATZ_DIR = os.path.join(BASE, "plaetze")
 
+# Zusaetzliches Verzeichnis ausserhalb des Programmcodes. Gedacht fuer den
+# Betrieb aus einem fertigen Abbild: Das Abbild bringt Profile mit, aber
+# wer eine Schwelle aendern oder eine Ortsgrenze korrigieren will, legt
+# die Datei hier ab -- ohne neues Abbild, ohne Neubau.
+#
+# Gesucht wird immer zuerst hier, dann im Abbild.
+EXTERN_DIR = os.environ.get("FS_PROFIL_DIR") or os.environ.get(
+    "TRACKER_PROFIL_DIR") or "/profil"
+
+
+def profil_datei(name):
+    """Pfad zu einer Profildatei: aussen vor innen."""
+    aussen = os.path.join(EXTERN_DIR, name)
+    if os.path.exists(aussen):
+        return aussen
+    return os.path.join(PLATZ_DIR, name)
+
 # Altes Praefix bleibt gueltig, damit bestehende Compose-Dateien
 # unveraendert weiterlaufen.
 PREFIXE = ("TRACKER_", "EDLN_")
@@ -34,6 +51,7 @@ VORGABEN = {
     "max_alt_ft": 10000.0,
     "interval_s": 5.0,
     "low_ft": 2500.0,
+    "laerm_schraeg_m": 1500.0,   # Rueckfall, wenn das Profil nichts sagt
     "overflight_km": 1.0,
     "view_km": 11.0,
     "platzrunde": True,      # Platzrundenerkennung sinnvoll? (Kleinflugplatz)
@@ -70,7 +88,7 @@ def lade():
     pfad = _env("PROFIL")
     code = _env("PLATZ")
     if not pfad and code:
-        pfad = os.path.join(PLATZ_DIR, f"{code.strip().lower()}.json")
+        pfad = profil_datei(f"{code.strip().lower()}.json")
 
     if pfad:
         if not os.path.exists(pfad):
@@ -82,13 +100,16 @@ def lade():
         with open(pfad, encoding="utf-8") as f:
             p.update(json.load(f))
 
-    # Umgebungsvariablen haben das letzte Wort
-    for k, muster in VORGABEN.items():
-        if k in ("runways", "orte"):
+    # Umgebungsvariablen haben das letzte Wort.
+    # Geprueft werden ALLE Schluessel des wirksamen Profils, nicht nur die
+    # eingebauten Vorgaben -- sonst liesse sich ein Wert, der erst im
+    # Profil dazugekommen ist, nicht von aussen aendern.
+    for k in list(p.keys()):
+        if k in ("runways", "orte", "platzrunde_geometrie"):
             continue
         v = _env(k)
         if v is not None:
-            p[k] = _cast(v, muster)
+            p[k] = _cast(v, VORGABEN.get(k, p[k]))
     # SITE als Alias fuer code (Rueckwaertskompatibilitaet)
     site = _env("SITE")
     if site:
@@ -133,8 +154,7 @@ if __name__ == "__main__":
 # ---------------------------------------------------------------- Zonen
 
 def _zonendatei(code):
-    return os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                        "plaetze", f"zonen_{code.lower()}.json")
+    return profil_datei(f"zonen_{code.lower()}.json")
 
 
 def lade_zonen(P):

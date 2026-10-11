@@ -203,3 +203,77 @@ Variante von selbst.
 `docker-compose.image.yml`. Für einen anderen Flugplatz sind lediglich
 `EDLN_LAT` und `EDLN_LON` zu ändern — und in `app/summary.py` bzw.
 `app/visualize.py` die Liste `ORTE` mit den dortigen Ortslagen.
+
+
+---
+
+## Profile ändern, ohne das Abbild neu zu bauen
+
+Das Abbild bringt die Profile mit. Wer einen Wert ändern will, muss
+deshalb **nicht** warten, bis ein neues Abbild gebaut ist — es gibt zwei
+Wege daran vorbei.
+
+### Einzelne Werte über Umgebungsvariablen
+
+Jeder Wert des Profils lässt sich mit `TRACKER_` plus Name in
+Großbuchstaben überschreiben:
+
+| Variable | wirkt auf |
+|---|---|
+| `TRACKER_LAERM_SCHRAEG_M` | Schwelle der Lärmbewertung in Metern |
+| `TRACKER_LOW_FT` | Grenze „tief", Vorgabe 2500 |
+| `TRACKER_RADIUS_NM` | Erfassungsradius |
+| `TRACKER_INTERVAL_S` | Abstand der Abfragen |
+| `TRACKER_VIEW_KM` | Kartenausschnitt |
+
+Eintragen in Portainer unter *Environment variables*, Stack aktualisieren,
+fertig. Listen wie `orte` und `runways` gehen so allerdings nicht.
+
+### Ganze Profildateien über einen Ordner
+
+Für alles Weitere — Ortslagen, Zonen, Platzrunde, Kartenkacheln — gibt es
+ein Verzeichnis, das **Vorrang vor dem Abbild** hat:
+
+| Variable | Vorgabe |
+|---|---|
+| `FS_PROFIL_PFAD` | `/share/CACHEDEV1_DATA/Container/flugspur/profil` |
+
+Es wird als `/profil` schreibgeschützt eingebunden. Gesucht wird immer
+zuerst dort, dann im Abbild. Legen Sie also nur die Dateien ab, die Sie
+tatsächlich ändern wollen:
+
+```
+flugspur/profil/
+├── edln.json             <- geändertes Platzprofil
+├── zonen_edln.json       <- geänderte Ortsgrenzen
+└── grundkarte_edln.json  <- eigene Kartenkacheln
+```
+
+Der Ordner darf leer sein oder ganz fehlen — dann gilt, was im Abbild
+steckt. Eine Änderung wirkt beim nächsten Durchlauf; die Profildateien
+werden bei jeder Auswertung neu gelesen, ein Neustart ist dafür nicht
+nötig.
+
+**Damit entfällt der entscheidende Nachteil der Abbild-Variante.** Sie
+aktualisieren den Programmcode per Knopfdruck in Portainer und behalten
+trotzdem die Freiheit, Schwellen und Gebietsgrenzen auf dem Share
+anzupassen.
+
+### Umstieg von der Mount-Variante
+
+1. Stack anhalten.
+2. Profilordner anlegen und die Dateien hineinlegen, die abweichen sollen
+   (anfangs meist keine — das Abbild ist auf demselben Stand).
+3. In Portainer die Stack-Definition durch `docker-compose.image.yml`
+   ersetzen, `FS_IMAGE` auf `ghcr.io/networxnet/flugspur:latest` setzen.
+4. `FS_APP_PFAD` und `FS_REPO_PFAD` werden nicht mehr gebraucht.
+5. Starten, dann `python3 /app/selbsttest.py` im Container.
+6. Scheitert das Schreiben nach `/data`: `FS_USER=0:0` setzen.
+
+Der Ordner `data` bleibt unverändert, die Aufzeichnung läuft weiter.
+
+### Aktualisieren danach
+
+In Portainer beim Stack **Re-pull image and redeploy**. Das Abbild wird
+von GitHub Actions bei jedem Commit neu gebaut; rechnen Sie nach meiner
+Meldung mit zwei bis drei Minuten, bis es bereitsteht.
