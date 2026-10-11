@@ -6,7 +6,7 @@
 #
 #  Beide Werte haben eine Vorgabe und koennen in Portainer unter
 #  "Environment variables" ueberschrieben werden:
-#     FS_IMAGE      z. B. ghcr.io/IHR-NAME/flugspur:1.0
+#     FS_IMAGE      z. B. ghcr.io/networxnet/flugspur:1.0
 #     FS_DATA_PFAD  z. B. /share/CACHEDEV1_DATA/Container/flugspur/data   (QNAP)
 #                          /mnt/daten/edln/data                  (Raspberry Pi)
 #
@@ -15,7 +15,7 @@
 services:
 
   adsb:
-    image: ${FS_IMAGE:-ghcr.io/CHANGEME/flugspur:latest}
+    image: ${FS_IMAGE:-ghcr.io/networxnet/flugspur:latest}
     container_name: ${STACK:-flugspur}-adsb
     restart: unless-stopped
     command: ["python3", "/app/adsb_logger.py"]
@@ -31,7 +31,7 @@ services:
       - ${FS_DATA_PFAD:-/share/CACHEDEV1_DATA/Container/flugspur/data}:/data
 
   ogn:
-    image: ${FS_IMAGE:-ghcr.io/CHANGEME/flugspur:latest}
+    image: ${FS_IMAGE:-ghcr.io/networxnet/flugspur:latest}
     container_name: ${STACK:-flugspur}-ogn
     restart: unless-stopped
     command: ["python3", "/app/ogn_logger.py"]
@@ -45,7 +45,7 @@ services:
       - ${FS_DATA_PFAD:-/share/CACHEDEV1_DATA/Container/flugspur/data}:/data
 
   summary:
-    image: ${FS_IMAGE:-ghcr.io/CHANGEME/flugspur:latest}
+    image: ${FS_IMAGE:-ghcr.io/networxnet/flugspur:latest}
     container_name: ${STACK:-flugspur}-summary
     restart: unless-stopped
     command: ["sleep", "infinity"]
@@ -63,7 +63,7 @@ services:
 
   # 4) Live-Monitor im Browser:  http://<Adresse>:8099
   monitor:
-    image: ${FS_IMAGE:-ghcr.io/CHANGEME/flugspur:latest}
+    image: ${FS_IMAGE:-ghcr.io/networxnet/flugspur:latest}
     container_name: ${STACK:-flugspur}-monitor
     restart: unless-stopped
     command: ["python3", "/app/monitor.py"]

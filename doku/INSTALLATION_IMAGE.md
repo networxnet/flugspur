@@ -3,7 +3,7 @@
 Komplett im Browser. Kein Build-Rechner, kein SSH, keine Kommandozeile.
 **Rund 30 Minuten.**
 
-Ergebnis: ein versioniertes Image unter `ghcr.io/<IHR-NAME>/flugspur`,
+Ergebnis: ein versioniertes Image unter `ghcr.io/networxnet/flugspur`,
 das auf QNAP, Synology, Unraid und Raspberry Pi identisch läuft — und das
 Sie an andere Initiativen weitergeben können.
 
@@ -80,7 +80,7 @@ Grüner Haken = fertig. In der Zusammenfassung des Laufs steht die Zeile, die
 Sie gleich brauchen:
 
 ```
-ghcr.io/ihrname/flugspur:latest
+ghcr.io/networxnet/flugspur:latest
 ```
 
 ### Wenn der Build rot wird
@@ -164,7 +164,7 @@ Bei **Environment variables** zwei Einträge:
 
 | Name | Value |
 |---|---|
-| `FS_IMAGE` | `ghcr.io/ihrname/flugspur:latest` |
+| `FS_IMAGE` | `ghcr.io/networxnet/flugspur:latest` |
 | `FS_DATA_PFAD` | `/share/CACHEDEV1_DATA/Container/flugspur/data` |
 
 **Deploy the stack.**
@@ -190,7 +190,7 @@ Haken bei **Re-pull image**.
 
 **Feste Version festhalten:** Repository → **Releases** → **Create a new
 release** → Tag `v1.0` → Publish. Danach existiert
-`ghcr.io/ihrname/flugspur:1.0`. Tragen Sie diesen Tag statt `latest` in
+`ghcr.io/networxnet/flugspur:1.0`. Tragen Sie diesen Tag statt `latest` in
 `FS_IMAGE` ein — dann ändert sich Ihr laufendes System nie unbeabsichtigt.
 Für Zahlen, die Sie öffentlich vertreten, ist das der saubere Weg: Sie können
 jederzeit belegen, welche Programmfassung welche Auswertung erzeugt hat.

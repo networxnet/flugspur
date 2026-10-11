@@ -1,5 +1,8 @@
 # Flugspur
 
+**Repository:** https://github.com/networxnet/flugspur
+
+
 **Zeichnet auf, wer wann wie tief über welchem Ort fliegt.**
 
 Ein Werkzeug für Bürgerinitiativen: Es zeichnet Flugbewegungen rund um einen
@@ -64,7 +67,7 @@ die Containernamen richten sich danach.
 ```yaml
 # Stacks -> Add stack -> Web editor -> docker-compose.image.yml einfuegen
 # Environment variables:
-#   FS_IMAGE       ghcr.io/<IHR-NAME>/flugspur:latest
+#   FS_IMAGE       ghcr.io/networxnet/flugspur:latest
 #   FS_DATA_PFAD   /share/CACHEDEV1_DATA/Container/flugspur/data
 #   TRACKER_PLATZ  edln
 ```

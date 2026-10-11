@@ -198,7 +198,7 @@ Kopieren dauerhaft.
 2. **Arbeitskopie holen.** Auf der NAS per SSH:
 
         cd /share/CACHEDEV1_DATA/Container/flugspur
-        git clone https://github.com/<konto>/flugspur.git repo
+        git clone https://github.com/networxnet/flugspur.git repo
 
    Der Zielordner heißt ausdrücklich `repo`. Ohne diese Angabe legt Git
    einen Ordner `flugspur` an — und der kollidiert mit dem darüber
