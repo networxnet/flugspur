@@ -480,28 +480,45 @@ def ueberfluege(pts):
         g = laerm.gruppe(p.get("muster"), p.get("desc"))
         if p["id"] not in grp_je_ac or (grp_je_ac[p["id"]] == "?" and g != "?"):
             grp_je_ac[p["id"]] = g
-    res = {}
+    # Umgriff je Ortslage. Das Entfernungsfeld reicht ohnehin nur bis
+    # MAX_M; liegt ein Punkt ausserhalb dieses Rechtecks, kann dort kein
+    # Ereignis entstehen. Vier Vergleiche sind um ein Vielfaches billiger
+    # als Feldabfrage und Pegelrechnung -- und der grosse Teil der
+    # Meldungen ist Durchgangsverkehr weit weg von jeder Ortslage.
+    umgriff = {}
     for name, ola, olo in ORTE:
-        laufend, ev = {}, []
-        feld = FELDER.get(name)
-        for p in pts:
-            s_m = (feld.schraeg_m(p["lat"], p["lon"], p["alt"]) if feld
-                   else hav_km(ola, olo, p["lat"], p["lon"]) * 1000.0)
-            grp = grp_je_ac.get(p["id"], "?")
+        f = FELDER.get(name)
+        if f:
+            umgriff[name] = (f.la0, f.la0 + f.nla * f.ZELLE_M / 1000.0 / f.kla,
+                             f.lo0, f.lo0 + f.nlo * f.ZELLE_M / 1000.0 / f.klo)
+
+    res = {name: [] for name, _, _ in ORTE}
+    laufend = {name: {} for name, _, _ in ORTE}
+    for p in pts:
+        pla, plo, pid = p["lat"], p["lon"], p["id"]
+        grp = grp_je_ac.get(pid, "?")
+        for name, ola, olo in ORTE:
+            feld = FELDER.get(name)
+            if feld:
+                g = umgriff[name]
+                if not (g[0] <= pla <= g[1] and g[2] <= plo <= g[3]):
+                    continue
+                s_m = feld.schraeg_m(pla, plo, p["alt"])
+            else:
+                s_m = hav_km(ola, olo, pla, plo) * 1000.0
             db = laerm.pegel_db(grp, s_m)
             if db < untere:
                 continue
-            v = laufend.get(p["id"])
+            v = laufend[name].get(pid)
             if v is None or p["t"] - v["t_letzt"] > DEBOUNCE:
                 v = dict(p)
                 v["db"], v["grp"], v["t_letzt"] = db, grp, p["t"]
-                laufend[p["id"]] = v
-                ev.append(v)
+                laufend[name][pid] = v
+                res[name].append(v)
             else:
                 v["t_letzt"] = p["t"]
                 if db > v["db"]:
                     v["db"], v["alt"] = db, p["alt"]
-        res[name] = ev
     return res
 
 

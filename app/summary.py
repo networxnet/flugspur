@@ -217,12 +217,26 @@ def report(day):
             if p["id"] not in gruppe_je_ac or g != "?":
                 gruppe_je_ac[p["id"]] = g
 
+    # Umgriff je Ortslage: billiger Vorfilter vor Feldabfrage und
+    # Pegelrechnung. Der weitaus groesste Teil der Meldungen stammt vom
+    # Durchgangsverkehr weit weg von jeder Ortslage.
+    umgriff = {}
+    for ortname, _, _ in ORTE:
+        f = FELDER.get(ortname)
+        if f:
+            umgriff[ortname] = (
+                f.la0, f.la0 + f.nla * f.ZELLE_M / 1000.0 / f.kla,
+                f.lo0, f.lo0 + f.nlo * f.ZELLE_M / 1000.0 / f.klo)
+
     events = defaultdict(list)
     for ortname, ola, olo in ORTE:
         feld = FELDER.get(ortname)
         laufend = {}
         for p in pts:
             if feld:
+                g = umgriff[ortname]
+                if not (g[0] <= p["lat"] <= g[1] and g[2] <= p["lon"] <= g[3]):
+                    continue
                 s_m = feld.schraeg_m(p["lat"], p["lon"], p["alt"])
             else:
                 s_m = hav_km(ola, olo, p["lat"], p["lon"]) * 1000.0

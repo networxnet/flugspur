@@ -176,8 +176,15 @@ def zustand():
         feld = FELDER.get(name)
         laufend = {}
         grenze = feld.MAX_M if feld else None
+        if feld:
+            g0 = feld.la0
+            g1 = feld.la0 + feld.nla * feld.ZELLE_M / 1000.0 / feld.kla
+            g2 = feld.lo0
+            g3 = feld.lo0 + feld.nlo * feld.ZELLE_M / 1000.0 / feld.klo
         for p in pts:
             if feld:
+                if not (g0 <= p["lat"] <= g1 and g2 <= p["lon"] <= g3):
+                    continue
                 # erst die billige seitliche Abfrage; liegt der Punkt schon
                 # seitlich ausserhalb des Feldes, kann kein Ereignis mehr
                 # entstehen -- das spart die Pegelrechnung fuer die grosse
