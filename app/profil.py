@@ -16,6 +16,7 @@ Auswahl des Profils:
   TRACKER_PLATZ=edln              -> plaetze/edln.json
   TRACKER_PROFIL=/data/mein.json  -> beliebiger Pfad
 """
+import tempfile
 import json, os, math
 
 BASE = os.path.dirname(os.path.abspath(__file__))
@@ -309,9 +310,96 @@ class Zonenfeld:
         return out
 
 
+def _zonen_schluessel(P, z):
+    """Kennzahl, die sich aendert, sobald das Feld neu gebaut werden muss."""
+    import hashlib
+    teile = [f"v2", f"{Zonenfeld.ZELLE_M}", f"{Zonenfeld.MAX_M}"]
+    try:
+        pfad = _zonendatei(P["code"])
+        if pfad and os.path.exists(pfad):
+            st = os.stat(pfad)
+            teile.append(f"{st.st_size}:{int(st.st_mtime)}")
+    except OSError:
+        pass
+    for n in sorted(z):
+        teile.append(f"{n}:{sum(len(r) for r in z[n])}")
+    return hashlib.sha256("|".join(teile).encode()).hexdigest()[:16]
+
+
 def lade_zonenfelder(P, zonen=None):
+    """Entfernungsfelder aller Ortslagen, mit Zwischenspeicher auf Platte.
+
+    Der Aufbau kostet rund 100.000 Rasterzellen Rechenarbeit. Das faellt
+    nicht ins Gewicht, solange ein Dienst dauerhaft laeuft -- aber die
+    Kartenerzeugung startet einen eigenen Prozess, und dann wartet man
+    bei jedem Knopfdruck erneut darauf. Deshalb wird das Ergebnis
+    abgelegt und nur neu berechnet, wenn sich Zonen, Rasterweite oder
+    Reichweite geaendert haben.
+    """
+    import base64
     z = zonen if zonen is not None else lade_zonen(P)
-    return {n: Zonenfeld(r) for n, r in z.items() if r}
+    z = {n: r for n, r in z.items() if r}
+    schluessel = _zonen_schluessel(P, z)
+    # Ablageorte in dieser Reihenfolge. Der Monitor bindet /data nur
+    # lesend ein -- dort legen die Logger die Datei an, der Monitor liest
+    # sie mit. Scheitert beides, dient /tmp als Rueckfall; das ueberlebt
+    # immerhin die Laufzeit des Containers und damit viele Kartenaufrufe.
+    name = f"_zonenfelder_{P['code'].lower()}.json"
+    orte = [os.environ.get("TRACKER_ZONEN_SPEICHER"),
+            os.environ.get("TRACKER_DATA_DIR") or "/data",
+            tempfile.gettempdir()]
+    orte = [os.path.join(o, name) for o in orte if o]
+
+    # 1. Versuch: fertige Felder einlesen -- aus dem ersten Ort, der passt
+    for datei in orte:
+      try:
+        with open(datei, encoding="utf-8") as f:
+            abgelegt = json.load(f)
+        if abgelegt.get("schluessel") == schluessel:
+            felder = {}
+            for n, d in abgelegt["felder"].items():
+                if n not in z:
+                    raise ValueError("Ortslage nicht mehr vorhanden")
+                o = Zonenfeld.__new__(Zonenfeld)
+                o.ringe = z[n]
+                o.la0, o.lo0 = d["la0"], d["lo0"]
+                o.kla, o.klo = d["kla"], d["klo"]
+                o.nla, o.nlo = d["nla"], d["nlo"]
+                roh = base64.b64decode(d["feld"])
+                o._feld = [list(roh[i * o.nlo:(i + 1) * o.nlo])
+                           for i in range(o.nla)]
+                felder[n] = o
+            if set(felder) == set(z):
+                return felder
+      except Exception:
+        continue
+
+    # 2. Neu bauen und ablegen
+    felder = {n: Zonenfeld(r) for n, r in z.items()}
+    try:
+        inhalt = {"schluessel": schluessel, "felder": {}}
+        for n, o in felder.items():
+            flach = bytearray()
+            for zeile in o._feld:
+                flach.extend(min(w, 255) for w in zeile)
+            inhalt["felder"][n] = {
+                "la0": o.la0, "lo0": o.lo0, "kla": o.kla, "klo": o.klo,
+                "nla": o.nla, "nlo": o.nlo,
+                "feld": base64.b64encode(bytes(flach)).decode(),
+            }
+        roh = json.dumps(inhalt)
+        for datei in orte:
+            try:
+                tmp = datei + ".tmp"
+                with open(tmp, "w", encoding="utf-8") as f:
+                    f.write(roh)
+                os.replace(tmp, datei)
+                break
+            except OSError:
+                continue        # nicht schreibbar -- naechsten Ort versuchen
+    except Exception:
+        pass        # Zwischenspeicher ist Kuer, nicht Pflicht
+    return felder
 
 
 def _umriss_ringe(feld_obj, puffer_m=0):

@@ -520,3 +520,25 @@ Nachsehen, ob es geklappt hat:
 
 Im Monitor-Protokoll steht bei einem Wechsel die Zeile
 `[neustart] Neuer Programmstand erkannt, beende mich.`
+
+
+## Warum die Karte beim ersten Mal laenger braucht
+
+Die Entfernungsfelder der Ortslagen umfassen zusammen rund 100.000
+Rasterzellen. Sie einmal zu berechnen kostet auf einer NAS spuerbar Zeit —
+und die Kartenerzeugung startet einen eigenen Prozess, sodass das frueher
+bei **jedem** Knopfdruck erneut anfiel.
+
+Seit Oktober 2026 wird das Ergebnis abgelegt:
+
+    /data/_zonenfelder_edln.json      (rund 130 kB)
+
+Neu berechnet wird nur, wenn sich die Zonendatei, die Rasterweite oder
+die Reichweite geaendert haben. Der erste Aufruf nach einer solchen
+Aenderung dauert wieder laenger, alle folgenden nicht.
+
+Ist `/data` schreibgeschuetzt — beim Monitor ist das Absicht —, weicht
+die Ablage auf `/tmp` im Container aus. Das ueberlebt zwar keinen
+Neustart, aber alle Kartenaufrufe dazwischen.
+
+Die Datei darf jederzeit geloescht werden; sie wird dann neu aufgebaut.
