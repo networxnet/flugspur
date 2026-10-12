@@ -24,6 +24,7 @@ from collections import defaultdict
 from datetime import datetime
 
 import profil
+import laerm
 
 DATA_DIR = os.environ.get("TRACKER_DATA_DIR", "/data")
 _P = profil.lade()
@@ -32,7 +33,10 @@ WOCHENTAG = ["Montag", "Dienstag", "Mittwoch", "Donnerstag",
              "Freitag", "Samstag", "Sonntag"]
 
 
-def laden(nur_tief=False):
+KLEIN = {"P1.0", "P1.1", "P1.2", "P1.3", "?"}
+
+
+def laden(nur_tief=False, nur_klein=False, umkreis_km=None):
     """Zaehlt Luftfahrzeuge je Wochentag und Stunde.
 
     Bewusst ohne alles im Speicher zu halten: Bei mehreren Wochen
@@ -71,6 +75,17 @@ def laden(nur_tief=False):
                     continue
                 if nur_tief and (hoehe is None or hoehe > LOW_FT):
                     continue
+                if nur_klein:
+                    g = laerm.gruppe(r.get("type") or r.get("typ"),
+                                     r.get("desc"))
+                    if g not in KLEIN:
+                        continue
+                if umkreis_km is not None:
+                    la, lo = r.get("lat"), r.get("lon")
+                    if la is None or lo is None:
+                        continue
+                    if profil.hav_km(_P["lat"], _P["lon"], la, lo) > umkreis_km:
+                        continue
                 t = float(t)
                 t_min = t if t_min is None else min(t_min, t)
                 t_max = t if t_max is None else max(t_max, t)
@@ -91,9 +106,18 @@ def main():
                     help="Laenge der Beobachtung in Minuten (Standard 30)")
     ap.add_argument("--tief", action="store_true",
                     help="nur tiefe Bewegungen zaehlen (Platzrundenverdacht)")
+    ap.add_argument("--alle-muster", action="store_true",
+                    help="auch Verkehrsmaschinen zaehlen. Ohne diesen "
+                         "Schalter werden nur Kleinflugzeuge, Ultraleicht "
+                         "und Motorsegler beruecksichtigt -- der Verkehr, "
+                         "um den es an einem Landeplatz geht.")
+    ap.add_argument("--umkreis-km", type=float, default=7.0,
+                    help="nur Meldungen innerhalb dieses Umkreises um den "
+                         "Platz (Vorgabe 7 km; 0 = ohne Begrenzung)")
     a = ap.parse_args()
 
-    erg = laden(nur_tief=a.tief)
+    erg = laden(nur_tief=a.tief, nur_klein=not a.alle_muster,
+                umkreis_km=(a.umkreis_km or None))
     if not erg or not erg["gelesen"]:
         print(f"Keine verwertbaren Daten in {DATA_DIR}.")
         return
@@ -105,6 +129,11 @@ def main():
           f"bis {datetime.fromtimestamp(erg['t_max']):%d.%m.%Y}")
     if a.tief:
         print(f"  nur Bewegungen bis {LOW_FT:.0f} ft")
+    if not a.alle_muster:
+        print("  nur Kleinflugzeuge, Ultraleicht und Motorsegler "
+              "(ohne Verkehrsmaschinen)")
+    if a.umkreis_km:
+        print(f"  nur im Umkreis von {a.umkreis_km:.0f} km um den Platz")
 
     print(f"\nLuftfahrzeuge je Stunde, Mittel ueber die erfassten Tage")
     print(f"  (leer = nichts erfasst)\n")
@@ -144,9 +173,20 @@ def main():
         wert, wt, h = beste[0]
         print(f"\nEmpfehlung: {WOCHENTAG[wt]}, {h:02d}:00 bis "
               f"{h+breite:02d}:00 Uhr.")
-        print(f"  Dann sind etwa {wert:.0f} Luftfahrzeuge zu erwarten -- "
-              f"genug fuer eine\n  aussagekraeftige Stichprobe in "
-              f"{breite*60} Minuten.")
+        print(f"  Erwartet werden etwa {wert:.0f} verschiedene Luftfahrzeuge "
+              f"in {breite*60} Minuten.")
+        print("  Gezaehlt werden verschiedene Maschinen, nicht Durchgaenge --")
+        print("  eine Maschine in der Platzrunde kommt mehrfach vorbei.")
+        if wert < 8:
+            noetig = max(2, int(round(12.0 / max(wert, 0.5))))
+            print(f"\n  ACHTUNG: Das ist wenig fuer einen Vergleich. Fuer eine")
+            print(f"  belastbare Aussage sollten es mindestens etwa zehn")
+            print(f"  verschiedene Maschinen sein -- rechnen Sie mit rund")
+            print(f"  {noetig} Stunden, oder verteilen Sie die Zaehlung auf")
+            print(f"  mehrere Termine zur selben Zeit.")
+        elif wert < 20:
+            print("\n  Das reicht fuer eine erste Abschaetzung. Eine zweite")
+            print("  Zaehlung an einem anderen Tag macht sie belastbarer.")
 
     print("""
 Vor dem Termin beachten:
