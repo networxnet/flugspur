@@ -479,6 +479,29 @@ def auswerten(skript, arg):
                        env=umg, timeout=600)
     return r.returncode, r.stdout, r.stderr
 
+_KARTE_SPERRE = threading.Lock()
+
+
+def karte_aus_speicher(tag):
+    """Baut die Tageskarte ohne Unterprozess und ohne erneutes Einlesen.
+
+    Faellt bei jedem Fehler auf den Unterprozess zurueck -- lieber
+    langsam als gar nicht.
+    """
+    with _KARTE_SPERRE:
+        try:
+            import visualize
+            ziel = os.path.join(ARBEIT, f"flugbewegungen_{tag}.html")
+            visualize.build([tag], ziel, pts=lies(tag))
+            return 0, f"im Speicher erzeugt: {ziel}", ""
+        except Exception as e:
+            import traceback
+            print(f"[karte] im Speicher fehlgeschlagen ({e}), "
+                  f"weiche auf Unterprozess aus", flush=True)
+            traceback.print_exc()
+            return auswerten("visualize.py", tag)
+
+
 def rahmen(titel, inhalt, zurueck=True):
     return f"""<!DOCTYPE html><html lang=de><head><meta charset=utf-8>
 <meta name=viewport content="width=device-width,initial-scale=1">
@@ -512,8 +535,14 @@ class H(BaseHTTPRequestHandler):
         tag = (frage.get("tag") or [None])[0]
 
         if weg.path == "/karte":
-            code, aus, fehler = auswerten("visualize.py",
-                                          "--all" if tag == "alle" else tag)
+            if tag and tag != "alle" and tag == heute():
+                # Heutiger Tag: die Daten liegen bereits geparst im
+                # Speicher. Im eigenen Prozess bauen spart Prozessstart,
+                # Zonenfelder und das erneute Zerlegen der Tagesdatei.
+                code, aus, fehler = karte_aus_speicher(tag)
+            else:
+                code, aus, fehler = auswerten("visualize.py",
+                                              "--all" if tag == "alle" else tag)
             datei = os.path.join(ARBEIT, "flugbewegungen_gesamt.html"
                                  if tag == "alle"
                                  else f"flugbewegungen_{tag}.html")

@@ -522,8 +522,15 @@ def ueberfluege(pts):
     return res
 
 
-def build(days, outfile):
-    pts = load(days)
+def build(days, outfile, pts=None):
+    """Erzeugt die Karte. `pts` erspart das erneute Einlesen.
+
+    Der Monitor haelt die Tagesdaten ohnehin geparst im Speicher. Sie noch
+    einmal von der Platte zu lesen und zu zerlegen kostet auf einer NAS
+    mehr Zeit als die gesamte uebrige Auswertung.
+    """
+    if pts is None:
+        pts = load(days)
     if not pts:
         print(f"Keine Daten fuer {', '.join(days)}")
         return False
