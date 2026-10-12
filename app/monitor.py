@@ -226,6 +226,39 @@ def ampel(alter):
         return "#b8860b", f"vor {alter/60:.1f} min"
     return "#b3261e", f"seit {alter/60:.0f} min still"
 
+# ---------------------------------------------------------------------
+# Seitenpuffer. Die Seite laedt sich selbst neu; dauert ein Aufbau auf
+# langsamer Hardware laenger als das Neuladeintervall, stapeln sich sonst
+# die Anfragen, bis CPU und Speicher volllaufen. Deshalb: hoechstens ein
+# Aufbau gleichzeitig, und ein fertiges Ergebnis wird mehrfach genutzt.
+# ---------------------------------------------------------------------
+SEITE_PUFFER_S = float(os.environ.get("TRACKER_SEITE_PUFFER_S", "15"))
+NEULADEN_S = int(os.environ.get("TRACKER_NEULADEN_S", "30"))
+_SEITE = {"zeit": 0.0, "html": None, "dauer": 0.0}
+_SEITE_SPERRE = threading.Lock()
+
+
+def seite_gepuffert():
+    jetzt = time.time()
+    if _SEITE["html"] and jetzt - _SEITE["zeit"] < SEITE_PUFFER_S:
+        return _SEITE["html"]
+    if not _SEITE_SPERRE.acquire(blocking=False):
+        # Ein anderer Aufruf baut gerade. Lieber die vorige Fassung
+        # ausliefern als einen zweiten Aufbau danebenzustellen.
+        if _SEITE["html"]:
+            return _SEITE["html"]
+        with _SEITE_SPERRE:
+            return _SEITE["html"] or seite()
+    try:
+        t = time.time()
+        _SEITE["html"] = seite()
+        _SEITE["dauer"] = time.time() - t
+        _SEITE["zeit"] = time.time()
+        return _SEITE["html"]
+    finally:
+        _SEITE_SPERRE.release()
+
+
 def seite():
     z = zustand()
     e = html.escape
@@ -288,7 +321,7 @@ def seite():
 
     return f"""<!DOCTYPE html><html lang=de><head><meta charset=utf-8>
 <meta name=viewport content="width=device-width,initial-scale=1">
-<meta http-equiv=refresh content=10>
+<meta http-equiv=refresh content={NEULADEN_S}>
 <title>Flugspur Monitor {e(P['code'])}</title>
 <style>
 body{{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;
@@ -515,7 +548,7 @@ class H(BaseHTTPRequestHandler):
             }, ensure_ascii=False).encode()
             typ = "application/json; charset=utf-8"
         else:
-            nutz = seite().encode("utf-8")
+            nutz = seite_gepuffert().encode("utf-8")
             typ = "text/html; charset=utf-8"
         self.send_response(200)
         self.send_header("Content-Type", typ)

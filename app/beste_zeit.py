@@ -32,10 +32,28 @@ WOCHENTAG = ["Montag", "Dienstag", "Mittwoch", "Donnerstag",
              "Freitag", "Samstag", "Sonntag"]
 
 
-def laden():
-    """Alle Positionsmeldungen mit Zeit, Kennung und Hoehe."""
-    pts = []
-    for pfad in sorted(glob.glob(os.path.join(DATA_DIR, "*.ndjson"))):
+def laden(nur_tief=False):
+    """Zaehlt Luftfahrzeuge je Wochentag und Stunde.
+
+    Bewusst ohne alles im Speicher zu halten: Bei mehreren Wochen
+    Aufzeichnung waeren das Millionen Eintraege. Gezaehlt wird direkt
+    beim Lesen, und jede Datei wird gemeldet -- sonst sieht ein langer
+    Durchlauf aus wie ein Haenger.
+    """
+    je_slot = defaultdict(set)
+    tage_je_wt = defaultdict(set)
+    tage = set()
+    t_min = t_max = None
+    gelesen = 0
+    dateien = sorted(glob.glob(os.path.join(DATA_DIR, "*.ndjson")))
+    if not dateien:
+        return None
+    print(f"{len(dateien)} Datei(en) werden gelesen:", flush=True)
+    for pfad in dateien:
+        mb = os.path.getsize(pfad) / 1e6
+        print(f"   {os.path.basename(pfad):28s} {mb:6.1f} MB ...",
+              end="", flush=True)
+        n = 0
         with open(pfad, encoding="utf-8", errors="replace") as f:
             for zeile in f:
                 zeile = zeile.strip()
@@ -46,12 +64,25 @@ def laden():
                 except json.JSONDecodeError:
                     continue
                 if r.get("net") == "OGN":
-                    t, kid, alt = r.get("ts"), r.get("id"), r.get("alt_ft")
+                    t, kid, hoehe = r.get("ts"), r.get("id"), r.get("alt_ft")
                 else:
-                    t, kid, alt = r.get("t"), r.get("icao"), r.get("alt_ft")
-                if t and kid:
-                    pts.append((float(t), kid, alt))
-    return pts
+                    t, kid, hoehe = r.get("t"), r.get("icao"), r.get("alt_ft")
+                if not t or not kid:
+                    continue
+                if nur_tief and (hoehe is None or hoehe > LOW_FT):
+                    continue
+                t = float(t)
+                t_min = t if t_min is None else min(t_min, t)
+                t_max = t if t_max is None else max(t_max, t)
+                d = datetime.fromtimestamp(t)
+                je_slot[(d.weekday(), d.hour)].add((d.date(), kid))
+                tage_je_wt[d.weekday()].add(d.date())
+                tage.add(d.date())
+                n += 1
+                gelesen += 1
+        print(f" {n} verwertet", flush=True)
+    return {"je_slot": je_slot, "tage_je_wt": tage_je_wt, "tage": tage,
+            "t_min": t_min, "t_max": t_max, "gelesen": gelesen}
 
 
 def main():
@@ -62,31 +93,18 @@ def main():
                     help="nur tiefe Bewegungen zaehlen (Platzrundenverdacht)")
     a = ap.parse_args()
 
-    pts = laden()
-    if not pts:
-        print(f"Keine Daten in {DATA_DIR}. Erst ein paar Tage mitschneiden.")
+    erg = laden(nur_tief=a.tief)
+    if not erg or not erg["gelesen"]:
+        print(f"Keine verwertbaren Daten in {DATA_DIR}.")
         return
-    if a.tief:
-        pts = [p for p in pts if p[2] is not None and p[2] <= LOW_FT]
-
-    tage = {datetime.fromtimestamp(t).date() for t, _, _ in pts}
-    t0 = min(p[0] for p in pts)
-    t1 = max(p[0] for p in pts)
-    print(f"Datengrundlage: {len(pts)} Positionsmeldungen, "
-          f"{len(tage)} Kalendertage")
-    print(f"  von {datetime.fromtimestamp(t0):%d.%m.%Y} "
-          f"bis {datetime.fromtimestamp(t1):%d.%m.%Y}")
+    je_slot = erg["je_slot"]
+    tage_je_wt = erg["tage_je_wt"]
+    print(f"\nDatengrundlage: {erg['gelesen']} Meldungen, "
+          f"{len(erg['tage'])} Kalendertage")
+    print(f"  von {datetime.fromtimestamp(erg['t_min']):%d.%m.%Y} "
+          f"bis {datetime.fromtimestamp(erg['t_max']):%d.%m.%Y}")
     if a.tief:
         print(f"  nur Bewegungen bis {LOW_FT:.0f} ft")
-
-    # Luftfahrzeuge je (Wochentag, Stunde); ein Luftfahrzeug je Stunde
-    # nur einmal, sonst gewinnt ein einziger langer Schulflug.
-    je_slot = defaultdict(set)
-    tage_je_wt = defaultdict(set)
-    for t, kid, _ in pts:
-        d = datetime.fromtimestamp(t)
-        je_slot[(d.weekday(), d.hour)].add((d.date(), kid))
-        tage_je_wt[d.weekday()].add(d.date())
 
     print(f"\nLuftfahrzeuge je Stunde, Mittel ueber die erfassten Tage")
     print(f"  (leer = nichts erfasst)\n")
