@@ -349,5 +349,30 @@
     ]
    }
   }
+ },
+ "nachbarplaetze": [
+  {
+   "code": "EDDL",
+   "name": "Duesseldorf",
+   "lat": 51.2895,
+   "lon": 6.7668,
+   "nah_km": 5.0,
+   "tief_ft": 2500
+  },
+  {
+   "code": "EDLW",
+   "name": "Weeze/Niederrhein",
+   "lat": 51.6024,
+   "lon": 6.1422,
+   "nah_km": 5.0,
+   "tief_ft": 2500
+  }
+ ],
+ "zuordnung": {
+  "nah_km": 3.0,
+  "tief_ft": 1500.0,
+  "platzrunde_umkreis_km": 6.0,
+  "platzrunde_mind_durchgaenge": 3,
+  "platzrunde_mind_minuten": 8
  }
 }

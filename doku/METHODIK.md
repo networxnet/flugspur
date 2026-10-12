@@ -338,6 +338,45 @@ Behörden arbeiten.
 
 ---
 
+## 5b. Welche Flüge überhaupt zu Mönchengladbach gehören
+
+Im Erfassungsradius von 15 NM liegt auch Düsseldorf. Am 10.10.2026
+entfielen von 252 erfassten Luftfahrzeugen **73,8 % auf Düsseldorf**,
+21,0 % auf Durchgangsverkehr und nur **5,2 % auf Mönchengladbach**. Wer
+das nicht trennt, schreibt Düsseldorfer Anflugverkehr den Anwohnern von
+Schiefbahn zu.
+
+**Zwei naheliegende Unterscheidungsmerkmale taugen nicht:**
+
+*Das Luftfahrzeugmuster nicht*, weil Geschäftsreisejets beide Plätze
+anfliegen und Kleinflugzeuge den Nahbereich von Düsseldorf durchqueren.
+Am 10.10. war eine Citation tief über Mönchengladbach und eine
+Cessna 152 tief bei Düsseldorf.
+
+*Das Rufzeichen nicht*, weil die Flugschule am Platz — die RWL German
+Flight Academy, Heimatplatz EDLN — Rufzeichen im Stil einer
+Fluggesellschaft verwendet (`RWL5545`). Ein Filter nach Rufzeichenform
+würde ausgerechnet die Schulflüge aussortieren.
+
+**Zuverlässig ist allein die Flugbahn.** `app/zuordnung.py` ordnet jede
+Spur danach ein:
+
+| Klasse | Kriterium |
+|---|---|
+| Start oder Landung EDLN | unter 1.500 ft innerhalb 3 km um den Platz |
+| Platzrunde EDLN | zusätzlich mehrere getrennte tiefe Durchgänge über längere Zeit |
+| Bewegung Düsseldorf | dasselbe Kriterium, bezogen auf EDDL |
+| Durchgangsverkehr | alles Übrige |
+
+Die Schwellen stehen im Platzprofil unter `zuordnung` und sind damit
+änderbar, ohne Code anzufassen.
+
+Das **Rufzeichen** dient nicht als Filter, wohl aber als
+Betreibermerkmal: Damit lässt sich beziffern, welcher Anteil des Betriebs
+auf Flugschulen entfällt.
+
+---
+
 ## 6. Zählregeln
 
 * **Ein Ereignis** entsteht, sobald der geschätzte Maximalpegel an einer

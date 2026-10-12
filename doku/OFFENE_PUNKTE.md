@@ -158,6 +158,19 @@ bereits vor; es fehlt nur die Auswertung.
 
 ## 3. Anteil Platzrundenflüge am Gesamtaufkommen
 
+**Teilweise erledigt:** `app/zuordnung.py` trennt seit Oktober 2026 nach
+Flugbahn und weist Platzrunden, Start/Landung, Nachbarplätze und
+Durchgangsverkehr getrennt aus, dazu die Betreiber über das Rufzeichen.
+
+**Noch offen und wichtig:** Die Platzrundenerkennung ist **nicht
+validiert**. Am 10.10. ergab sie eine Zeit von rund 21 Minuten zwischen
+zwei tiefen Durchgängen — eine echte Platzrunde dauert sechs bis acht.
+Entweder fehlen Durchgänge in der Erfassung, oder die Kriterien greifen
+daneben. Vor jeder Veröffentlichung dieser Zahlen muss das gegen
+Sichtbeobachtung geprüft werden (siehe Punkt 1 und Testplan Tag 2).
+
+### Ursprüngliche Fragestellung
+
 Derselben Studie zufolge sind an Verkehrslandeplätzen **etwa die Hälfte**
 der Bewegungen Platzrundenflüge, an einzelnen Plätzen bis zu zwei Drittel.
 Für EDLN wird von der Bürgerinitiative ein Schulflug-Anteil von über 50 %
